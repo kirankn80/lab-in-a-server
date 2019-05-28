@@ -1,0 +1,70 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+vagrant_root = File.dirname(__FILE__)
+contrail_version = 'master-latest'
+
+Vagrant.configure("2") do |config|
+  config.vm.box = 'qarham/CentOS7.5-350GB'
+  config.vbguest.auto_update = false
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+
+  config.vm.define 'aio' do |all|
+    all.vm.hostname = 'aio'
+    all.vm.provider "virtualbox" do |v|
+      v.memory = 48000
+      v.cpus = 8
+    end
+    all.vm.network "public_network", auto_config: false, bridge: 'ens2f0'
+    all.vm.provision :ansible do |ansible|
+      ansible.playbook = "ansible/all.yml"
+      ansible.extra_vars = {
+        vm_interface: "eth1",
+        vm_ip: "192.168.10.10",
+        vm_netmask: "255.255.255.0",
+        ntp_server: "ntp.juniper.net",
+        contrail_version: contrail_version,
+        vagrant_root: vagrant_root
+      }
+    end
+    all.vm.provision "shell", path: "ansible/scripts/all.sh"
+  end
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.groups = {
+      "all" => ["aio"]
+    }
+    ansible.playbook = "ansible/command.yml"
+    ansible.extra_vars = {
+      vm_ip: "10.0.2.15",
+      ntp_server: "ntp.juniper.net",
+      contrail_version: contrail_version,
+      vagrant_root: vagrant_root
+    }
+  end
+
+  config.vm.define 'cc' do |cc|
+    cc.vm.hostname = 'cc'
+    cc.vm.network "forwarded_port", guest: 9091, host: 9091
+    cc.vm.provider "virtualbox" do |v|
+      v.memory = 4000
+      v.cpus = 2
+    end
+    cc.vm.provision "shell", inline: "> /etc/profile.d/myvars.sh"
+    cc.vm.provision "shell", inline: "echo 'export CCD_IMAGE=ci-repo.englab.juniper.net:5010/contrail-command-deployer:#{contrail_version}' >> /etc/profile.d/myvars.sh"
+    cc.vm.provision "shell", inline: "echo 'export COMMAND_SERVERS_FILE=/tmp/command_servers.yml' >> /etc/profile.d/myvars.sh"
+    cc.vm.provision "shell", inline: "echo 'export INSTANCES_FILE=/tmp/instances.yaml' >> /etc/profile.d/myvars.sh"
+
+    cc.vm.provision "file", source: "config/command_servers.yml", destination: "/tmp/command_servers.yml"
+    cc.vm.provision "file", source: "config/instances.yaml", destination: "/tmp/instances.yaml"
+
+    cc.vm.provision "shell", path: "ansible/scripts/docker.sh"
+    cc.vm.provision :ansible do |ansible|
+      ansible.playbook = "ansible/setup.yml"
+      ansible.extra_vars = {
+        set_root_pass: "contrail",
+      }
+    end
+    cc.vm.provision "shell", path: "ansible/scripts/cc.sh"
+  end
+end

@@ -1,0 +1,45 @@
+---
+- name: Install net-tools
+  yum:
+    name: net-tools
+    state: latest
+
+- name: Install wget
+  yum:
+    name: wget
+    state: latest
+
+- name: Install python-devel
+  yum:
+    name: python-devel
+    state: latest
+
+- name: Install python-pip
+  yum:
+    name: python-pip
+    state: latest
+
+- name: Install tree
+  yum:
+    name: tree
+    state: latest
+
+- name: Install vim
+  yum:
+    name: vim
+    state: latest
+
+- name: Install git review
+  pip:
+    name: git-review
+    state: latest
+
+- name: Install tox
+  pip:
+    name: tox
+    state: latest
+
+- name: Install geventhttpclient
+  pip:
+    name: geventhttpclient
+    state: latest

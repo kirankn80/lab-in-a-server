@@ -1,0 +1,5 @@
+---
+- name: Install gnome desktop
+  command: yum -y groupinstall "GNOME Desktop"
+
+- command: ln -sf /lib/systemd/system/runlevel5.target /etc/systemd/system/graphical.target

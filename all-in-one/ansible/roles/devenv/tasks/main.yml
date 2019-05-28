@@ -1,0 +1,22 @@
+---
+- name: git clone contrail-dev-env
+  git:
+    repo: 'https://github.com/Juniper/contrail-dev-env.git'
+    dest: /root/contrail-dev-env
+    update: no
+
+- name: run startup.sh to install dev containers
+  shell: cd /root/contrail-dev-env && (./startup.sh -b || true) && ./vm-dev-env/init.sh
+
+- name: initialize dev env
+  shell: cd /root/contrail && make -f tools/packages/Makefile dep && python third_party/fetch_packages.py
+
+- name: Ensure env variables present in .bashrc
+  blockinfile:
+    path: /root/.bashrc
+    block: |
+      export CONTRAIL=/root/contrail
+      export LD_LIBRARY_PATH=$CONTRAIL/build/lib:$LD_LIBRARY_PATH
+
+- name: auto start docker.server at boot
+  systemd: name=docker enabled=yes

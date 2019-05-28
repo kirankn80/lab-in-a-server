@@ -1,0 +1,15 @@
+---
+- name: Re-configure {{ vm_interface }} interface
+  template:
+    src: ifcfg-interface.j2
+    dest: /etc/sysconfig/network-scripts/ifcfg-{{ vm_interface }}
+
+- name: Re-configure /etc/resolv.conf
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+
+- name: restart network service
+  service: 
+    name: network
+    state: restarted

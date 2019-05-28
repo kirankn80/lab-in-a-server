@@ -1,0 +1,7 @@
+---
+- name: Setup root
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - setup_root

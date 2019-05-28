@@ -1,0 +1,6 @@
+---
+- name: Populate config/command_servers.yaml
+  template:
+    src: command_servers.j2
+    dest: "{{ vagrant_root }}/config/command_servers.yml"
+  delegate_to: localhost

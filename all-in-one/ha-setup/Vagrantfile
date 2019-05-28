@@ -1,0 +1,91 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+vagrant_root = File.dirname(__FILE__)
+contrail_version = 'master-latest'
+
+Vagrant.configure("2") do |config|
+  config.vm.box = 'qarham/CentOS7.5-350GB'
+  config.vbguest.auto_update = false
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+
+  (1..3).each do |id|
+    node_name = ( "ha-node" + id.to_s ).to_sym
+    config.vm.define node_name do |node|
+      node.vm.hostname = "ha-node#{id}"
+      node.vm.provider "virtualbox" do |v|
+        v.memory = 48000
+        v.cpus = 8
+        end
+      node.vm.network "public_network", auto_config: false, bridge: 'em1'
+      node.vm.provision :ansible do |ansible|
+        ansible.playbook = "ansible/network.yml"
+        ansible.extra_vars = {
+          vm_interface: "eth1",
+          vm_ip: "10.155.75.13#{id}",
+          vm_netmask: "255.255.224.0",
+          vm_dns1: "172.21.200.60",
+          vm_dns2: "8.8.8.8",
+          vm_domain: "englab.juniper.net jnpr.net juniper.net"
+        }
+      end
+      node.vm.provision :ansible do |ansible|
+        ansible.playbook = "ansible/setup.yml"
+      end
+      node.vm.provision "file", source: "ansible/scripts/all.sh", destination: "/tmp/all.sh"
+    end
+  end
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.groups = {
+      "all" => ["ha-node1"]
+    }
+    ansible.playbook = "ansible/ha.yml"
+    ansible.extra_vars = {
+      primary: {"host": "ha-node1", "ip": "10.155.75.131"},
+      secondaries: [{"host": "ha-node2", "ip": "10.155.75.132"},
+                    {"host": "ha-node3", "ip": "10.155.75.133"}],
+      ntp_server: "ntp.juniper.net",
+      contrail_version: contrail_version,
+      vagrant_root: vagrant_root
+    }
+  end
+
+  config.vm.provision "ansible" do |ansible|
+    ansible.groups = {
+      "all" => ["ha-node1"]
+    }
+    ansible.playbook = "ansible/command.yml"
+    ansible.extra_vars = {
+      vm_ip: "10.0.2.15",
+      ntp_server: "ntp.juniper.net",
+      contrail_version: contrail_version,
+      vagrant_root: vagrant_root
+    }
+  end
+
+  config.vm.define 'cc' do |cc|
+    cc.vm.hostname = 'cc'
+    cc.vm.network "forwarded_port", guest: 9091, host: 9091
+    cc.vm.provider "virtualbox" do |v|
+      v.memory = 4000
+      v.cpus = 2
+    end
+    cc.vm.provision "shell", inline: "> /etc/profile.d/myvars.sh"
+    cc.vm.provision "shell", inline: "echo 'export CCD_IMAGE=ci-repo.englab.juniper.net:5010/contrail-command-deployer:#{contrail_version}' >> /etc/profile.d/myvars.sh"
+    cc.vm.provision "shell", inline: "echo 'export COMMAND_SERVERS_FILE=/tmp/command_servers.yml' >> /etc/profile.d/myvars.sh"
+    cc.vm.provision "shell", inline: "echo 'export INSTANCES_FILE=/tmp/instances.yaml' >> /etc/profile.d/myvars.sh"
+
+    cc.vm.provision "file", source: "config/command_servers.yml", destination: "/tmp/command_servers.yml"
+    cc.vm.provision "file", source: "config/instances.yaml", destination: "/tmp/instances.yaml"
+
+    cc.vm.provision "shell", path: "ansible/scripts/docker.sh"
+    cc.vm.provision :ansible do |ansible|
+      ansible.playbook = "ansible/setup.yml"
+      ansible.extra_vars = {
+        set_root_pass: "contrail",
+      }
+    end
+    cc.vm.provision "file", source: "ansible/scripts/cc.sh", destination: "/tmp/cc.sh"
+  end
+end

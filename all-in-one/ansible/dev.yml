@@ -1,0 +1,15 @@
+---
+- name: Provision dev vm
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - network
+    - setup_root
+    - base_pkgs
+    - dev_pkgs
+    - gnome
+    - vncsetup
+    - devenv
+  vars:
+    set_root_pass: 'mpls'

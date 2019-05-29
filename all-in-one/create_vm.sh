@@ -107,7 +107,7 @@ EOF
       }
     end
     cc.vm.provision "shell", inline: "> /etc/profile.d/myvars.sh"
-    cc.vm.provision "shell", inline: "echo 'export CCD_IMAGE=ci-repo.englab.juniper.net:5010/contrail-command-deployer:$ui_tag' >> /etc/profile.d/myvars.sh"
+    cc.vm.provision "shell", inline: "echo 'export CCD_IMAGE=nodei40.englab.juniper.net:5010/contrail-command-deployer:$ui_tag' >> /etc/profile.d/myvars.sh"
     cc.vm.provision "shell", inline: "echo 'export COMMAND_SERVERS_FILE=/tmp/command_servers.yml' >> /etc/profile.d/myvars.sh"
     cc.vm.provision "shell", inline: "echo 'export INSTANCES_FILE=/tmp/instances.yml' >> /etc/profile.d/myvars.sh"
 

@@ -1,5 +1,4 @@
 #!/bin/bash -ex
-set -x
 
 EOF=EOF
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

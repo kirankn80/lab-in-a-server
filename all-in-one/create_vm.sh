@@ -10,7 +10,6 @@ print_usage() {
     echo ""
     echo "    VM OPTIONS:"
     echo "       --dev           : Create the Dev VM"
-    echo "       --dev-lite      : Create the Headless Dev VM"
     echo "       --all <version> : Create the Contrail all-in-one and UI VM"
     echo "       --destroy       : Destroy the VM"
     echo ""
@@ -40,7 +39,7 @@ generate_vagrantfile() {
 vagrant_root = File.dirname(__FILE__)
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "qarham/CentOS7.5-350GB"
+  config.vm.box = "kirankn/centOS-7.5"
   config.vbguest.auto_update = false
 
   config.vm.define "$user_id-$name" do |m|
@@ -58,7 +57,7 @@ Vagrant.configure("2") do |config|
           vm_interface: "$interface",
           vm_gateway_ip: "$gateway_ip",
           vm_ip: "$vm_ip",
-          vm_netmask: "255.255.224.0",
+          vm_netmask: "255.255.255.192",
           vm_dns1: "172.21.200.60",
           vm_dns2: "8.8.8.8",
           vm_domain: "englab.juniper.net jnpr.net juniper.net",
@@ -96,7 +95,7 @@ EOF
           vm_interface: "$interface",
           vm_gateway_ip: "$gateway_ip",
           vm_ip: "$ui_ip",
-          vm_netmask: "255.255.224.0",
+          vm_netmask: "255.255.255.192",
           vm_dns1: "172.21.200.60",
           vm_dns2: "8.8.8.8",
           vm_domain: "englab.juniper.net jnpr.net juniper.net",

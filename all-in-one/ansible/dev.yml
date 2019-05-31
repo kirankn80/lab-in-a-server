@@ -12,4 +12,4 @@
     - vncsetup
     - devenv
   vars:
-    set_root_pass: 'mpls'
+    set_root_pass: 'contrail'

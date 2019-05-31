@@ -8,7 +8,6 @@
     - setup_root
     - base_pkgs
     - dev_pkgs
-    - gnome
     - vncsetup
     - devenv
   vars:

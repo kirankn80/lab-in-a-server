@@ -182,7 +182,7 @@ fi
 
 set -e
 interface="eth1"
-host_interface="em1"
+host_interface="eno1"
 ntp_server="ntp.juniper.net"
 gateway_ip=$(ip route | grep default | grep $host_interface | awk '{print $3}')
 all_id=${user_id}_all

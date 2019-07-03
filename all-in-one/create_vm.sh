@@ -1,5 +1,4 @@
 #!/bin/bash -ex
-set -x
 
 EOF=EOF
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -41,7 +40,7 @@ generate_vagrantfile() {
 vagrant_root = File.dirname(__FILE__)
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "qarham/CentOS7.5-350GB"
+  config.vm.box = "kirankn/centOS-7.5"
   config.vbguest.auto_update = false
 
   config.vm.define "$user_id-$name" do |m|
@@ -59,7 +58,7 @@ Vagrant.configure("2") do |config|
           vm_interface: "$interface",
           vm_gateway_ip: "$gateway_ip",
           vm_ip: "$vm_ip",
-          vm_netmask: "255.255.224.0",
+          vm_netmask: "255.255.255.192",
           vm_dns1: "172.21.200.60",
           vm_dns2: "8.8.8.8",
           vm_domain: "englab.juniper.net jnpr.net juniper.net",
@@ -97,7 +96,7 @@ EOF
           vm_interface: "$interface",
           vm_gateway_ip: "$gateway_ip",
           vm_ip: "$ui_ip",
-          vm_netmask: "255.255.224.0",
+          vm_netmask: "255.255.255.192",
           vm_dns1: "172.21.200.60",
           vm_dns2: "8.8.8.8",
           vm_domain: "englab.juniper.net jnpr.net juniper.net",
@@ -184,7 +183,7 @@ fi
 
 set -e
 interface="eth1"
-host_interface="em1"
+host_interface="eno1"
 ntp_server="ntp.juniper.net"
 gateway_ip=$(ip route | grep default | grep $host_interface | awk '{print $3}')
 all_id=${user_id}_all

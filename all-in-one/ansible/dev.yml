@@ -8,8 +8,7 @@
     - setup_root
     - base_pkgs
     - dev_pkgs
-    - gnome
     - vncsetup
     - devenv
   vars:
-    set_root_pass: 'mpls'
+    set_root_pass: 'contrail'

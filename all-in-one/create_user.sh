@@ -4,12 +4,12 @@ if [ $# -lt 1 ]; then
     echo ""
     echo "Usage: create_user.sh <user-id> [password]"
     echo ""
-    echo "Default password is 'Embe1mpls'"
+    echo "Default password is 'c0ntrail123'"
     echo ""
 fi
 
 user_id=$1
-password="Embe1mpls"
+password="c0ntrail123"
 if [ $# -eq 2 ]; then
     password=$2
 fi

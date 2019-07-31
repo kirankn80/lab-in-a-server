@@ -11,7 +11,6 @@ print_usage() {
     echo ""
     echo "    VM OPTIONS:"
     echo "       --dev           : Create the Dev VM"
-    echo "       --dev-lite      : Create the Headless Dev VM"
     echo "       --all <version> : Create the Contrail all-in-one and UI VM"
     echo "       --destroy       : Destroy the VM"
     echo ""

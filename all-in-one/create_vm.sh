@@ -4,6 +4,7 @@ EOF=EOF
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $DIR/user-list.cfg
 
+
 print_usage() {
     echo ""
     echo "Usage: create_vm.sh <user-id> [VM OPTIONS]"

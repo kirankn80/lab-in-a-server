@@ -1,0 +1,99 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+
+UUID = "haji_dpdk"
+vagrant_root = File.dirname(__FILE__)
+  Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+   config.ssh.insert_key = false
+   (1..1).each do |id|
+        re_name  = ( "haji-vqfx" + id.to_s ).to_sym
+        pfe_name = ( "haji-vqfx" + id.to_s + "-pfe" ).to_sym
+        config.vm.define pfe_name do |vqfxpfe|
+            vqfxpfe.ssh.insert_key = false
+            vqfxpfe.vm.box = 'juniper/vqfx10k-pfe'
+            vqfxpfe.vm.boot_timeout = 600
+            vqfxpfe.vm.synced_folder '.',
+                '/vagrant', disabled: true
+            # Internal em1 port to RE
+            vqfxpfe.vm.network 'private_network',
+                auto_config: false,
+                nic_type: '82540EM',
+                virtualbox__intnet: "#{UUID}_vqfx#{id}_internal"
+        end
+
+        config.vm.define re_name do |vqfx|
+            vqfx.vm.hostname = "haji-vqfx#{id}"
+            vqfx.vm.box = 'juniper/vqfx10k-re'
+            vqfx.vm.boot_timeout = 600
+            vqfx.vm.synced_folder '.',
+                '/vagrant', disabled: true
+            # Internal em1 port to PFE
+            vqfx.vm.network 'private_network',
+                auto_config: false,
+                nic_type: '82540EM',
+                virtualbox__intnet: "#{UUID}_vqfx#{id}_internal"
+
+            # Unused em2 port we need to exclude
+            vqfx.vm.network 'private_network',
+                auto_config: false, nic_type: '82540EM',
+                virtualbox__intnet: "#{UUID}_vqfx#{id}_reserved-bridge"
+
+            # Dataplane ports (Yes, dataplane ports are mapped on the RE and not PFE for vQFX10k)
+            (1..5).each do |seg_id|
+               vqfx.vm.network 'private_network',
+                auto_config: false,
+                nic_type: '82540EM',
+                virtualbox__intnet: "#{UUID}_vqfx#{id}_seg#{seg_id}"
+            end
+        end
+    end
+
+    $subnet_s_mgmt = "10.204.220"
+    $subnet_ctrl_data= "192.168.4"
+      (1..3).each do |s_id|
+        srv_name = ( "haji-srv" + s_id.to_s ).to_sym
+        config.vm.define srv_name do |srv|
+          srv.vm.box = "kirankn/centOS-7.5"
+          srv.vm.hostname = "haji-srv#{s_id}"
+          srv.vm.network "public_network", auto_config: false, bridge: 'eno1'
+          srv.vm.provision :ansible do |ansible|
+            ansible.playbook = "/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/dev.yml"
+            ansible.extra_vars = {
+                vm_interface: "eth1",
+                vm_gateway_ip: "10.204.220.62",
+                vm_ip: "#{$subnet_s_mgmt}.#{s_id+34}",
+                vm_netmask: "255.255.225.192",
+                vm_dns1: "172.21.200.60",
+                vm_dns2: "8.8.8.8",
+                vm_domain: "englab.juniper.net jnpr.net juniper.net",
+                ntp_server: "ntp.juniper.net",
+            }
+          srv.vm.network 'private_network',
+            ip: "#{$subnet_ctrl_data}.#{s_id+10}",
+            netmask:"255.255.255.0",
+            nic_type: '82540EM',
+            virtualbox__intnet: "#{UUID}_vqfx1_seg#{2*s_id-1}"
+          srv.vm.network 'private_network',
+            nic_type: '82540EM',
+            virtualbox__intnet: "#{UUID}_vqfx1_seg#{2*s_id}"
+          srv.vm.provision "shell", path: "/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/set-centos-gw.sh"
+        config.vm.provider :virtualbox do |vb|
+          vb.auto_nat_dns_proxy = false
+          vb.customize ["modifyvm", :id, "--memory", "32768", "--cpus", "7"]
+        end
+      end
+    end
+  end
+  if !Vagrant::Util::Platform.windows?
+      config.vm.provision "ansible" do |ansible|
+          ansible.groups = {
+              "vqfx10k" => ["haji-vqfx1" ],
+              "vqfx10k-pfe"  => ["haji-vqfx1-pfe"],
+              "all:children" => ["vqfx10k", "vqfx10k-pfe"]
+          }
+          ansible.playbook = "pb.conf.all.commit.yaml"
+      end
+  end
+end

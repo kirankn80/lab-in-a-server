@@ -6,9 +6,5 @@
   roles:
     - network
     - setup_root
-    - base_pkgs
-    - dev_pkgs
-    - vncsetup
-    - devenv
   vars:
     set_root_pass: 'contrail'

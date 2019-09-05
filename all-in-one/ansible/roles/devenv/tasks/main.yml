@@ -1,15 +1,15 @@
 ---
-- name: git clone contrail-dev-env
+- name: Clone contrail-dev-env
   git:
-    repo: 'https://github.com/Juniper/contrail-dev-env.git'
+    repo: https://github.com/aprathi16/contrail-dev-env.git
     dest: /root/contrail-dev-env
-    update: no
+    version: lab-in-a-server
 
 - name: run startup.sh to install dev containers
   shell: cd /root/contrail-dev-env && (./startup.sh -b || true) && ./vm-dev-env/init.sh
 
 - name: initialize dev env
-  shell: cd /root/contrail && make -f tools/packages/Makefile dep && python third_party/fetch_packages.py
+  shell: export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && export LC_TYPE=en_US.UTF-8 && cd /root/contrail && make -f tools/packages/Makefile dep && python3.6 third_party/fetch_packages.py
 
 - name: Ensure env variables present in .bashrc
   blockinfile:

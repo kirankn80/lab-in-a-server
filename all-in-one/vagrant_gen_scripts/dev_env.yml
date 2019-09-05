@@ -1,0 +1,5 @@
+template : devenv
+name : xyz
+management_ip : { 'ip': '10.10.1.10', 'netmask': '25.255.255.0', 'gateway':'10.20.10.0'}
+
+ 

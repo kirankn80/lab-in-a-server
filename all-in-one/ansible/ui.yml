@@ -4,8 +4,7 @@
   gather_facts: no
   become: True
   roles:
-    - network
     - setup_root
-    - base_pkgs
+    - command
   vars:
     set_root_pass: 'contrail'

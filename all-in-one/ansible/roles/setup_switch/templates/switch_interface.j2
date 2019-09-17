@@ -1,0 +1,14 @@
+interfaces:
+{% for i in range(interface_count) %}
+  - name: xe-0/0/{{ i }}
+    description: connected to n{{ i }}
+    vlan_id: {{ vlan_id }}
+{% endfor %}
+inet_interfaces:
+  - name: irb
+    description: "vRouter gateway for all srv"
+    ip: {{ gateway_ip }}/24
+  - name: lo0
+    description: "vqfx Loopback"
+    ip: 2.2.2.1/32
+router_id: 2.2.2.1 

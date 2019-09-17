@@ -1,0 +1,9 @@
+- name: create hostvars
+  hosts: all
+  gather_facts: no
+  become: True
+  connection: local
+  roles:
+    - setup_switch
+    - Juniper.junos
+    - commit_switch_conf

@@ -11,8 +11,18 @@ command_servers:
         # Specify either container_path
         #container_path: /root/contrail-command-051618.tar
         # or registry details and container_name
+{% if registry == 'nodei40'%}
         registry_insecure: true
-        container_registry: nodei40.englab.juniper.net:5010
+        container_registry: nodei40.englab.juniper.net:5000
+{% elif registry == 'hub'%}
+        registry_insecure: false
+        container_registry: hub.juniper.net/contrail-nightly
+        container_registry_username: JNPR-Customer200
+        container_registry_password: FSg0vLW^7oM#GZy8Ju*f
+{% else %}
+        registry_insecure: true
+        container_registry: ci-repo.englab.juniper.net:5010
+{% endif %}
         container_name: contrail-command
         container_tag: {{contrail_version}}
         #container_registry_username: username@juniper.net

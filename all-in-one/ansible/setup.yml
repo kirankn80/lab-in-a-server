@@ -5,3 +5,5 @@
   become: True
   roles:
     - setup_root
+  vars:
+    set_root_pass: 'contrail'

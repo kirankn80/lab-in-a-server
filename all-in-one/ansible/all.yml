@@ -10,3 +10,5 @@
   vars:
     set_root_pass: 'contrail'
     instances_template: 'config_instances.j2'
+    registry: 'cirepo'
+    contrail_deployer_branch: 'master'

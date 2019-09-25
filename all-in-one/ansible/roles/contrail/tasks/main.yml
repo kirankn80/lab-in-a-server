@@ -9,6 +9,7 @@
     repo: 'https://github.com/Juniper/contrail-ansible-deployer.git'
     dest: /root/contrail-ansible-deployer
     force: yes
+    version: "{{ contrail_deployer_branch }}"
 
 - name: Populate contrail-ansible-deployer/config/instances.yaml
   template:
@@ -26,3 +27,4 @@
     src: "{{ instances_template }}"
     dest: "{{ vagrant_root }}/config/instances.yaml"
   delegate_to: localhost
+

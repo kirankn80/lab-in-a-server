@@ -1,0 +1,36 @@
+---
+- name: Install epel-release
+  yum:
+    name: epel-release
+    state: latest
+
+- name: Install pip
+  yum:
+    name: python-pip
+    state: latest
+
+- name: Install python-setuptools
+  yum:
+    name: python-setuptools
+    state: latest
+
+- name: Install ansible
+  yum:
+    name: ansible
+    state: latest
+
+- name: Install git
+  yum:
+    name: git
+    state: latest
+
+- name: Install tmux
+  yum:
+    name: tmux
+    state: latest
+
+- name: Disable firewall
+  service:
+    name: firewalld
+    enabled: no
+    state: stopped

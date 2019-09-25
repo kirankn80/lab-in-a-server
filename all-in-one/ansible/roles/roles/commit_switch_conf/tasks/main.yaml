@@ -1,0 +1,31 @@
+# This task gets all Junos configuration from all devices  
+- name: load vars
+  include_vars: "{{ vagrant_root }}/playbooks/host_vars/{{ switch_name }}.yaml"
+
+- name: Build configuration
+  template: 
+    src: vqfx.conf.j2 
+    dest: /tmp/{{ inventory_hostname }}.conf 
+    force: yes
+    
+- name: Deploy config to device ... please wait
+  juniper_junos_config:
+    load: 'override'
+    src: "/tmp/{{ inventory_hostname }}.conf"
+    host: "{{ ansible_ssh_host }}"
+    port: "{{ ansible_ssh_port }}"
+    user: root
+    passwd: Juniper
+    format: text
+    logfile: /tmp/changes.log
+
+- name: Getting config ... please wait
+  juniper_junos_config:
+    retrieve: committed
+    host: "{{ ansible_ssh_host }}"
+    port: "{{ ansible_ssh_port }}"
+    user: root
+    passwd: Juniper
+    format: text
+    dest: "{{ inventory_hostname }}.conf"
+    logfile: /tmp/changes.log

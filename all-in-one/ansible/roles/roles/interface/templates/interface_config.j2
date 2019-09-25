@@ -1,0 +1,3 @@
+sudo sed -i -r  "s/IPADDR\=(.+)/IPADDR\={{ ip_address }}/" /etc/sysconfig/network-scripts/{{ interface_name }}
+sudo sed -i -r  "s/NETMASK\=(.+)/NETMASK\={{ netmask }}/" /etc/sysconfig/network-scripts/{{ interface_name }}
+sudo systemctl restart network

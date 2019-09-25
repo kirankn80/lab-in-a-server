@@ -1,0 +1,56 @@
+global_configuration:
+{% if registry == 'nodei40'%}
+  CONTAINER_REGISTRY: nodei40.englab.juniper.net:5000
+  REGISTRY_PRIVATE_INSECURE: True
+{% elif registry == 'hub'%}
+  CONTAINER_REGISTRY: hub.juniper.net/contrail-nightly
+  REGISTRY_PRIVATE_INSECURE: False
+  CONTAINER_REGISTRY_USERNAME: JNPR-Customer200
+  CONTAINER_REGISTRY_PASSWORD: FSg0vLW^7oM#GZy8Ju*f
+{% else %}
+  CONTAINER_REGISTRY: ci-repo.englab.juniper.net:5010
+  REGISTRY_PRIVATE_INSECURE: True
+{% endif %}
+provider_config:
+  bms:
+    ssh_user: root
+    ssh_pwd: c0ntrail123
+    ntpserver: {{ ntp_server }}
+    domainsuffix: local
+instances:
+  {{ primary.host }}:
+    ip: {{ primary.ip }}
+    provider: bms
+    roles:
+      config:
+      config_database:
+      control:
+      webui:
+      analytics:
+      analytics_database:
+      vrouter:
+      openstack:
+      openstack_compute:
+{% for secondary in secondaries %}
+  {{ secondary.host }}:
+    ip: {{ secondary.ip }}
+    provider: bms
+    roles:
+      config:
+      config_database:
+      analytics:
+      analytics_database:
+{% endfor %}
+contrail_configuration:
+  CONTRAIL_VERSION: {{ contrail_version }}
+  CLOUD_ORCHESTRATOR: openstack
+  RABBITMQ_NODE_PORT: 5673
+  ENCAP_PRIORITY: VXLAN,MPLSoUDP,MPLSoGRE
+  OPENSTACK_VERSION: queens
+  AUTH_MODE: keystone
+  KEYSTONE_AUTH_URL_VERSION: /v3
+kolla_config:
+  kolla_globals:
+    enable_haproxy: no
+  kolla_passwords:
+    keystone_admin_password: contrail123

@@ -1,0 +1,5 @@
+---
+- name: Copy script to server
+  template:
+   src: interface_config.j2
+   dest: "/tmp/config-{{ interface_name }}.sh"

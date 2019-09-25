@@ -1,0 +1,7 @@
+---
+- name: configure interface
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - interface

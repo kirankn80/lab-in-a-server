@@ -1,11 +1,10 @@
 ---
-- name: Provision ui vm
+- name: Install base packages
   hosts: all
   gather_facts: no
   become: True
   roles:
     - setup_root
-    - command
+    - base_pkgs
   vars:
     set_root_pass: 'contrail'
-    repository: 'cirepo'

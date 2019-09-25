@@ -1,14 +1,22 @@
 from abc import ABC
 from enum import Enum
+from jinja2 import Template, FileSystemLoader, Environment
 import os
+
+flavour = {
+  'large': {'memory': '32768', 'cpu': '8'},
+  'medium': {'memory': '16384', 'cpu': '4'},
+  'small': {'memory': '8192', 'cpu': '2'}
+}
 
 class Server(ABC):
 
-  def __init__(self, name, management_ip={}, interfaces=[], provision=[]):
+  def __init__(self, name, flavour = "low", management_ip={}, interfaces=[], provision=[]):
     self.name = name
     self.interfaces = interfaces
     self.management_ip = management_ip
     self.provision = provision
+    self.flavour = flavour
 
   def get_config(self):
     config = self.set_initialconfig()
@@ -26,18 +34,33 @@ class Server(ABC):
       if Vagrant.has_plugin?("vagrant-vbguest")
         srv.vbguest.auto_update = false
       end
-      srv.vm.hostname = \"%s\"
-      srv.vm.network \"public_network\", auto_config: false, bridge: \'eno1\'"""%(self.name, box, self.name)
+      srv.vm.hostname = \"%s\""""%(self.name, box, self.name)
     return config
 
   def set_interfaces(self, config):
+    if self.management_ip:
+      ifcount = 2
+    else:
+      ifcount = 1
     for interface in self.interfaces:
+      print(interface)
       if interface['host_only']:
         config = config + """
       srv.vm.network \'private_network\', ip: \"%s\", netmask: \"%s\", nic_type: \'82540EM\'"""%(interface['ip'], interface['netmask'])
       else :
         config = config + """
       srv.vm.network \'private_network\', ip: \"%s\", netmask: \"%s\", nic_type: \'82540EM\', virtualbox__intnet: \"%s\""""%(interface['ip'], interface['netmask'], interface['name'])
+      config = config + """
+      srv.vm.provision :ansible do |ansible|
+        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/set_interface.yml\" 
+        ansible.extra_vars = {
+          interface_name: \"%s\",
+          ip_address: \"%s\",
+          netmask: \"%s\"
+        }
+      end
+      srv.vm.provision \"shell\", inline: \"/bin/sh /tmp/config-%s.sh\""""%(str("ifcfg-eth"+str(ifcount)), interface['ip'], interface['netmask'], str("ifcfg-eth"+str(ifcount)))
+      ifcount += 1
     return config
 
   def set_endblock(self, config):
@@ -45,8 +68,8 @@ class Server(ABC):
     end
     config.vm.provider :virtualbox do |vb|
       vb.auto_nat_dns_proxy = false
-      vb.customize [\"modifyvm\", :id, \"--memory\", \"32768\", \"--cpus\", \"7\"]
-    end """
+      vb.customize [\"modifyvm\", :id, \"--memory\", \"{}\", \"--cpus\", \"{}\"]
+    end """.format(flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])
     return config
 
   def set_managementip(self, config):
@@ -54,13 +77,11 @@ class Server(ABC):
 
   def provision_vm(self, config):
     for item in self.provision:
-      if item['method'] == 'shell':
-        config = config + """
-      srv.vm.provision \"shell\", path: \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/%s\""""%(item['path'])
       if item['method'] == 'ansible':
+        print(item)
         config = config + """
-      srv.vm.provision :ansible do |ansible|
-        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/%s\""""%(item['path'])
+      srv.vm.provision :%s do |ansible|
+        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/%s\""""%(item['method'], item['path'])
         if item['variables']:
           config = config + """
         ansible.extra_vars = {"""
@@ -75,14 +96,21 @@ class Server(ABC):
         }"""
         config = config + """
       end"""
+      else:
+        param = """
+      srv.vm.provision \"%s\", """%(item['method'])
+        for key, value in item.items():
+          if key is not 'method':
+            param = param + """{}: {}, """.format(key, value)
+        config = config + param[:-2]
     return config
 
 class CENTOS(Server):
 
   box = "kirankn/centOS-7.5"
 
-  def __init__(self, name, management_ip={}, interfaces=[], provision=[]):
-    super().__init__(name, management_ip, interfaces, provision)
+  def __init__(self, name, flavour, management_ip={}, interfaces=[], provision=[]):
+    super().__init__(name, flavour, management_ip, interfaces, provision)
 
   def set_initialconfig(self):
     return super().set_initialconfig("", self.box)
@@ -90,6 +118,7 @@ class CENTOS(Server):
   def set_managementip(self, config):
     if self.management_ip:
       config = config + """
+      srv.vm.network \"public_network\", auto_config: false, bridge: \'eno1\'
       srv.vm.provision :ansible do |ansible|
         ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/network.yml\"
         ansible.extra_vars = {
@@ -102,7 +131,8 @@ class CENTOS(Server):
           vm_domain: \"englab.juniper.net jnpr.net juniper.net\",
           ntp_server: \"ntp.juniper.net\"
         }
-      end"""%(self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'])
+      end
+      srv.vm.provision \"shell\", path: \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/set-centos-gw.sh\""""%(self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'])
     return config
 
 
@@ -125,6 +155,10 @@ class VQFX(Switch):
   rebox = "juniper/vqfx10k-re"
   pfebox = "juniper/vqfx10k-pfe"
 
+  def __init__(self, name, gateway, interfaces=[]):
+    super().__init__(name, interfaces)
+    self.gateway = gateway
+
   def setup_box(self,image_for="RE"):
     if image_for == "RE":
         box = self.rebox
@@ -138,7 +172,7 @@ class VQFX(Switch):
     VAR_PLACEHOLDER.vm.network \'private_network\',auto_config: false, nic_type: \'82540EM\', virtualbox__intnet: \"%s\"
     end
     """%(str(image_for.lower()+"_name"),box,str(self.name+"_internal"))
-    return config.replace("VAR_PLACEHOLDER",str(self.name+image_for.lower()))
+    return config.replace("VAR_PLACEHOLDER",str("switch"+image_for.lower()))
 
   def get_config(self):
     #define PFE block
@@ -153,12 +187,28 @@ class VQFX(Switch):
     VAR_PLACEHOLDER.vm.hostname = \"%s\"
     VAR_PLACEHOLDER.vm.network \'private_network\',auto_config: false, nic_type: \'82540EM\', virtualbox__intnet: \"%s\"
     end"""%("re_name",str(self.name+"re"),str(self.name+"_reserved_bridge"))
-    config = config.replace("VAR_PLACEHOLDER",str(self.name+"re"))
+    config = config.replace("VAR_PLACEHOLDER",str("switch"+"re"))
+    # settiing up interfaces to switch
     config = config + """
     config.vm.define %s do |VAR_PLACEHOLDER|"""%("re_name")
-    config = config.replace("VAR_PLACEHOLDER",str(self.name+"re"))
+    config = config.replace("VAR_PLACEHOLDER",str("switch"+"re"))
+    # setting up physical connections
     for interface in self.interfaces:
-        config = config + self.setup_internal_network(str(self.name+"re"),interface)
+        config = config + self.setup_internal_network(str("switch"+"re"),interface)
+    # configuring logical connection 
+    config = config + """
+      VAR_PLACEHOLDER.vm.provision :ansible do |ansible|
+        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/switch_interface.yml\"
+        ansible.extra_vars = {{
+          vagrant_root: \"{}\",
+          lab_in_a_server: "/root/lab-in-a-server",
+          switch_name: \"{}\",
+          interface_count: {},
+          vlan_id: {},
+          gateway_ip: \"{}\"
+      }}
+      end""".format(os.getcwd(), self.re_name, len(self.interfaces), 101, self.gateway)
+    config = config.replace("VAR_PLACEHOLDER",str("switch"+"re"))
     config = config + """
     end"""
     return config
@@ -185,16 +235,36 @@ def get_devices(devices):
     config = config + device.get_config()
   return config
 
-def generate_vagrant_file(hosts,switches,file_name="Vagrantfile"):
+def provision_groups(groups_dict, provision_playbook):
+  config = """
+  if !Vagrant::Util::Platform.windows?
+    config.vm.provision "ansible" do |ansible|
+      ansible.groups = {"""
+  param = ""
+  for key, value in groups_dict.items():
+    param = param + """
+        \"{}\" => {}, """.format(key,value)
+  config = config + param[:-2]
+  config = config + """
+      }
+      ansible.playbook = \"%s\""""%(provision_playbook)
+  config = config + """
+    end"""
+  return config
+
+def generate_vagrant_file(hosts,switches,groups_dict={},provision_playbook="",file_name="Vagrantfile"):
   with open(file_name, 'w') as f:
     f.write(get_common_file_contents(2))
     f.write(get_devices(switches))
     f.write(get_devices(hosts))
+    if groups_dict:
+      f.write(provision_groups(groups_dict, provision_playbook))
     f.write(append_end_block())
 
 if __name__ == '__main__':
-  hosts = []
-  switches = []
-  hosts.append(CENTOS("h1", { 'ip' : '', 'netmask':'','gateway': 'x.x.x.x'}, [{'name': 'i1','ip': '','netmask':'','host_only': 'false'},{'name':'i2','ip':'','netmask':'','host_only':'false'}], [{'method': 'ansible', 'path': 'devenv.yml', 'variables': {'xyz': 'abc','mno': 34}}]))
-  switches.append(VQFX("s1", ['s1','s2','s3']))
-  generate_vagrant_file(hosts,switches)
+  #hosts = []
+  #switches = []
+  #hosts.append(CENTOS("h1", { 'ip' : '', 'netmask':'','gateway': 'x.x.x.x'}, [{'name': 'i1','ip': '','netmask':'','host_only': 'false'},{'name':'i2','ip':'','netmask':'','host_only':'false'}], [{'method': 'ansible', 'path': 'devenv.yml', 'variables': {'xyz': 'abc','mno': 34}}]))
+  #switches.append(VQFX("s1", ['s1','s2','s3']))
+  #generate_vagrant_file(hosts,switches)
+  print(provision_groups({'vqfx10k': ['av1', 'ajdj1'], 'vqfx10k-pfe': ['ssls'], 'all:children': ['vqfx10k','vqfx10k-pfe']}, "jdla/djie"))

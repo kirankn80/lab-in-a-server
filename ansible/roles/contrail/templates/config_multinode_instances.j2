@@ -18,8 +18,8 @@ provider_config:
     ntpserver: {{ ntp_server }}
     domainsuffix: local
 instances:
-  {{ controller.host }}:
-    ip: {{ controller.ip }}
+  {{ primary.host }}:
+    ip: {{ primary.ip }}
     provider: bms
     roles:
       openstack:
@@ -29,6 +29,19 @@ instances:
       analytics_database:
       analytics:
       webui:
+{% for control in controls %}
+  {{ control.host }}:
+    ip: {{ control.ip }}
+    provider: bms
+    roles:
+      openstack:
+      config_database:
+      config:
+      control:
+      analytics_database:
+      analytics:
+      webui:
+{% endfor %}
 {% for i in range(0, dpdk_computes) %}
   {{ computes[i].host }}:
     ip: {{ computes[i].ip }}
@@ -57,7 +70,7 @@ contrail_configuration:
   CLOUD_ORCHESTRATOR: openstack
   RABBITMQ_NODE_PORT: 5673
   ENCAP_PRIORITY: VXLAN,MPLSoUDP,MPLSoGRE
-  OPENSTACK_VERSION: queens
+  OPENSTACK_VERSION: {{ openstack_version }}
   AUTH_MODE: keystone
   KEYSTONE_AUTH_URL_VERSION: /v3
 kolla_config:

@@ -39,7 +39,7 @@ contrail_configuration:
   CLOUD_ORCHESTRATOR: openstack
   RABBITMQ_NODE_PORT: 5673
   ENCAP_PRIORITY: VXLAN,MPLSoUDP,MPLSoGRE
-  OPENSTACK_VERSION: queens
+  OPENSTACK_VERSION: {{ openstack_version }}
   AUTH_MODE: keystone
   KEYSTONE_AUTH_URL_VERSION: /v3
 kolla_config:

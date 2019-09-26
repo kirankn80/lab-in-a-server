@@ -160,7 +160,7 @@ def set_defaults(inputs):
   if 'management_ip' not in inputs.keys():
     inputs['management_ip'] = []
 
-  if 'management_ip' in inputs.keys() and len(inputs['management_ip']) == 1:
+  if 'management_ip' in inputs.keys() and type(inputs['management_ip']) is dict:
     inputs['management_ip'] = [inputs['management_ip']]
 
   if 'flavour' not in inputs.keys():

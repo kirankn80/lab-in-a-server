@@ -427,7 +427,7 @@ def three_node(inputs):
     host_instance.append(contrail_host)
 
     if 'contrail_command_ip' in inputs.keys():
-      hosts.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command']))
+      host_instance.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command']))
   
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname,"Vagrantfile"))

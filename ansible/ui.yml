@@ -8,4 +8,4 @@
     - command
   vars:
     set_root_pass: 'contrail'
-    repository: 'cirepo'
+    registry: 'cirepo'

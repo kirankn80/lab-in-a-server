@@ -15,14 +15,13 @@ fi
 echo "$MACHINE_DIR"
 mkdir $MACHINE_DIR/.machines
 
-sed -i'.bak' 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' ./scripts/vm_builder.py
-sed -i'.bak' 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' ./scripts/vm_models.py
-sed -i'.bak' 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' ./scripts/vm_builder.py
-sed -i'.bak' 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' ./scripts/vm_models.py
-sed -i'.bak' 's@LAB_IN_A_SERVER_INFO_FILE@'$VAGRANT_VM'/vminfo.json@' ./scripts/vm_builder.py
+sudo cp $VAGRANT_VM/scripts/vm_builder.py /usr/bin/vm_builder
+sudo cp $VAGRANT_VM/scripts/vm_models.py /usr/bin/vm_models.py
 
-
-sudo cp ./scripts/vm_builder.py /usr/bin/vm_builder
-sudo cp ./scripts/vm_models.py /usr/bin/vm_models.py
+sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/vm_builder
+sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/vm_models.py
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr/bin/vm_builder
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr/bin/vm_models.py
+sudo sed -i 's@LAB_IN_A_SERVER_INFO_FILE@'$VAGRANT_VM'/vminfo.json@' /usr/bin/vm_builder
 
 sudo chmod 777 /usr/bin/vm_builder

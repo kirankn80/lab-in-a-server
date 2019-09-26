@@ -407,8 +407,8 @@ def three_node(inputs):
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
 
   if 'contrail_version' in inputs.keys():
-    if 'contrail_depolyer_branch' not in inputs.keys():
-      release, inputs['contrail_depolyer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
+    if 'contrail_deployer_branch' not in inputs.keys():
+      release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     else:
       release = "undefined"
     update_kernel(release,host_instance)
@@ -422,7 +422,7 @@ def three_node(inputs):
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path,"/scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
@@ -495,8 +495,8 @@ def three_node_vqfx(inputs):
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
   # take out the last node instance make it controller and install contrail with this as host
   if 'contrail_version' in inputs.keys():
-    if 'contrail_depolyer_branch' not in inputs.keys():
-      release, inputs['contrail_depolyer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
+    if 'contrail_deployer_branch' not in inputs.keys():
+      release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     else:
       release = "undefined"
     update_kernel(release,host_instance)
@@ -510,7 +510,7 @@ def three_node_vqfx(inputs):
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     
@@ -555,7 +555,7 @@ def devenv(inputs):
 def all_in_one(inputs):
   # validate schema
   if 'dpdk_compute' not in inputs.keys():
-    inputs['dpdk_compute'] = 0
+    inputs['dpdk_compute'] = False
 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     Optional('management_ip') : 
@@ -596,12 +596,12 @@ def all_in_one(inputs):
       print("cannot install contrail without ip\n")
       sys.exit()
 
-    if 'contrail_depolyer_branch' not in inputs.keys():
-      release, inputs['contrail_depolyer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
+    if 'contrail_deployer_branch' not in inputs.keys():
+      release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     else:
       release = "undefined"
     update_kernel(release,host_instance)
-    host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'registry': inputs['registry'], 'dpdk_compute':inputs['dpdk_compute'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
+    host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
     if 'contrail_command_ip' in inputs.keys():
       host_instance.append(get_contrail_command(inputs,name=str(inputs['name']+"-command"),flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=[]))

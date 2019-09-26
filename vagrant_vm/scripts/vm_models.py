@@ -1,7 +1,10 @@
 from abc import ABC
 from enum import Enum
-from jinja2 import Template, FileSystemLoader, Environment
+#from jinja2 import Template, FileSystemLoader, Environment
 import os
+
+ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
+par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 
 flavour = {
   'large': {'memory': '32768', 'cpu': '8'},
@@ -52,14 +55,14 @@ class Server(ABC):
       srv.vm.network \'private_network\', ip: \"%s\", netmask: \"%s\", nic_type: \'82540EM\', virtualbox__intnet: \"%s\""""%(interface['ip'], interface['netmask'], interface['name'])
       config = config + """
       srv.vm.provision :ansible do |ansible|
-        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/set_interface.yml\" 
+        ansible.playbook = \"%s\" 
         ansible.extra_vars = {
           interface_name: \"%s\",
           ip_address: \"%s\",
           netmask: \"%s\"
         }
       end
-      srv.vm.provision \"shell\", inline: \"/bin/sh /tmp/config-%s.sh\""""%(str("ifcfg-eth"+str(ifcount)), interface['ip'], interface['netmask'], str("ifcfg-eth"+str(ifcount)))
+      srv.vm.provision \"shell\", inline: \"/bin/sh /tmp/config-%s.sh\""""%(os.path.join(ansible_scripts_path, "set_interface.yml"), str("ifcfg-eth"+str(ifcount)), interface['ip'], interface['netmask'], str("ifcfg-eth"+str(ifcount)))
       ifcount += 1
     return config
 
@@ -81,7 +84,7 @@ class Server(ABC):
         print(item)
         config = config + """
       srv.vm.provision :%s do |ansible|
-        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/%s\""""%(item['method'], item['path'])
+        ansible.playbook = %s"""%(item['method'], item['path'])
         if item['variables']:
           config = config + """
         ansible.extra_vars = {"""
@@ -120,7 +123,7 @@ class CENTOS(Server):
       config = config + """
       srv.vm.network \"public_network\", auto_config: false, bridge: \'eno1\'
       srv.vm.provision :ansible do |ansible|
-        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/network.yml\"
+        ansible.playbook = \"%s\"
         ansible.extra_vars = {
           vm_interface: \"eth1\",
           vm_gateway_ip: \"%s\",
@@ -132,7 +135,7 @@ class CENTOS(Server):
           ntp_server: \"ntp.juniper.net\"
         }
       end
-      srv.vm.provision \"shell\", path: \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/set-centos-gw.sh\""""%(self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'])
+      srv.vm.provision \"shell\", path: \"%s\""""%(os.path.join(ansible_scripts_path, 'network.yml'), self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'], os.path.join(ansible_scripts_path, 'scripts/set-centos-gw.sh'))
     return config
 
 
@@ -198,7 +201,7 @@ class VQFX(Switch):
     # configuring logical connection 
     config = config + """
       VAR_PLACEHOLDER.vm.provision :ansible do |ansible|
-        ansible.playbook = \"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/switch_interface.yml\"
+        ansible.playbook = \"/{}\"
         ansible.extra_vars = {{
           vagrant_root: \"{}\",
           lab_in_a_server: "/root/lab-in-a-server",
@@ -207,7 +210,7 @@ class VQFX(Switch):
           vlan_id: {},
           gateway_ip: \"{}\"
       }}
-      end""".format(os.getcwd(), self.re_name, len(self.interfaces), 101, self.gateway)
+      end""".format(os.path.join(ansible_scripts_path, 'switch_interface.yml'), "%s"%os.path.join(par_dir,inputs['name']), self.re_name, len(self.interfaces), 101, self.gateway)
     config = config.replace("VAR_PLACEHOLDER",str("switch"+"re"))
     config = config + """
     end"""
@@ -261,10 +264,3 @@ def generate_vagrant_file(hosts,switches,groups_dict={},provision_playbook="",fi
       f.write(provision_groups(groups_dict, provision_playbook))
     f.write(append_end_block())
 
-if __name__ == '__main__':
-  #hosts = []
-  #switches = []
-  #hosts.append(CENTOS("h1", { 'ip' : '', 'netmask':'','gateway': 'x.x.x.x'}, [{'name': 'i1','ip': '','netmask':'','host_only': 'false'},{'name':'i2','ip':'','netmask':'','host_only':'false'}], [{'method': 'ansible', 'path': 'devenv.yml', 'variables': {'xyz': 'abc','mno': 34}}]))
-  #switches.append(VQFX("s1", ['s1','s2','s3']))
-  #generate_vagrant_file(hosts,switches)
-  print(provision_groups({'vqfx10k': ['av1', 'ajdj1'], 'vqfx10k-pfe': ['ssls'], 'all:children': ['vqfx10k','vqfx10k-pfe']}, "jdla/djie"))

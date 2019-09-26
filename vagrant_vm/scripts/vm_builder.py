@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import os
 import re
@@ -15,11 +17,17 @@ from schema import *
 import vm_models as vm
 
 ############# global vars
-par_dir = "/Users/aprathik/vm-spinner"
+
+
+par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
+#par_dir = os.path.join(lab_path, ".machines")
 
 host_vboxnet_ip = ""
 
-info_file = "/Users/aprathik/vm-spinner/change_file/vminfo.json"
+ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
+
+info_file = "LAB_IN_A_SERVER_INFO_FILE"
+#info_file = os.path.join(lab_path, "all_in_one/vagrant_vm/vminfo.json")
 # append timestamp as suffix so that internal_network interface names are unique across
 unique_suffix = str(datetime.datetime.now().strftime("_%Y%m%d%m%s"))
 
@@ -38,11 +46,6 @@ def get_keys(prefix, num):
   for i in range(1, num+1):
     list.append(prefix+str(i))
   return list
-
-def set_model(dict, keys, value):
-  for key in keys:
-    dict[key] = value
-  return dict
 
 def get_host_names(name, dict, list):
   for element in list:
@@ -143,7 +146,7 @@ def validate_tn_dpdk_computes(inputs,n):
     return True
   return False
 
-def validate_repository(repo):
+def validate_registry(repo):
   if repo in ['cirepo', 'nodei40', 'hub']:
     return True
   return False
@@ -166,18 +169,18 @@ def set_defaults(inputs):
   if 'openstack_version' not in inputs.keys():
     inputs['openstack_version'] = "queens"
 
-  if 'repository' not in inputs.keys():
-    inputs['repository'] = "cirepo"
+  if 'registry' not in inputs.keys():
+    inputs['registry'] = "cirepo"
 
 def set_defaults_three_node(inputs):
 
   if 'additional_compute' not in inputs.keys():
     inputs['additional_compute'] = 0
 
-  if 'additional_controller' not in inputs.keys():
-    inputs['additional_controller'] = 0 
+  if 'additional_control' not in inputs.keys():
+    inputs['additional_control'] = 0 
 
-  inputs['additional_nodes'] = inputs['additional_compute'] + inputs['additional_controller']
+  inputs['additional_nodes'] = inputs['additional_compute'] + inputs['additional_control']
 
   if 'dpdk_computes' not in inputs.keys():
     inputs['dpdk_computes'] = 0
@@ -186,7 +189,7 @@ def update_kernel(release,host_instance):
   try:
     if release == "master" or float(release) > 1909:
       for node in host_instance:
-        node.provision = [{'method': 'ansible', 'path': 'kernel_upgrade.yml', 'variables': {}}] + node.provision
+        node.provision = [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, "kernel_upgrade.yml")), 'variables': {}}] + node.provision
   except ValueError:
     pass
 
@@ -353,9 +356,9 @@ def destroy_workspace(dirname):
 
 def get_contrail_command(inputs,name,flavour,management_ip,interfaces):
   x = vm.CENTOS(name, flavour,management_ip, interfaces, [\
-      {'method': 'ansible', 'path': 'ui.yml', 'variables': {'vm_ip': inputs['contrail_command_ip']['ip'], 'contrail_version': inputs['contrail_version'], 'ntp_server': 'ntp.juniper.net', 'repository': inputs['repository'], 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}}, \
-      {'method': 'shell', 'path': "\"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/docker.sh\""},
-      {'method': 'file', 'source': "\"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/cc.sh\"", 'destination': "\"/tmp/cc.sh\""},
+      {'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'ui.yml')), 'variables': {'vm_ip': inputs['contrail_command_ip']['ip'], 'contrail_version': inputs['contrail_version'], 'ntp_server': 'ntp.juniper.net', 'registry': inputs['registry'], 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}}, \
+      {'method': 'shell', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'scripts/docker.sh'))},
+      {'method': 'file', 'source': "\"%s\""%(os.path.join(ansible_scripts_path, 'scripts/cc.sh')), 'destination': "\"/tmp/cc.sh\""},
       {'method': 'shell', 'inline': "\"chmod +x /tmp/cc.sh && /tmp/cc.sh\""}])
   return x
 
@@ -376,9 +379,9 @@ def three_node(inputs):
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
     Optional('additional_compute') : int,
-    Optional('additional_controller'): int,
+    Optional('additional_control'): int,
     Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
-    Optional('repository'): And(str, lambda repo: validate_repository(repo)),
+    Optional('registry'): And(str, lambda repo: validate_registry(repo)),
     Optional('openstack_version'): str,
     Optional('contrail_deployer_branch'): str,
     Optional('internal_network'): bool,
@@ -400,7 +403,7 @@ def three_node(inputs):
   computes_controllers = []
   for node in hosts:
     if node is not 'command':
-      host_instance.append(vm.CENTOS(host_names[node], "medium", management_data[node], interfaces[node], [{'method': 'ansible', 'path': 'base_pkgs.yml', 'variables':{}}]))
+      host_instance.append(vm.CENTOS(host_names[node], "medium", management_data[node], interfaces[node], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
 
   if 'contrail_version' in inputs.keys():
@@ -411,16 +414,16 @@ def three_node(inputs):
     update_kernel(release,host_instance)
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
-    controllers = host_instance[:inputs['additional_controller']]
-    controller_ip = computes_controllers[:inputs['additional_controller']]
-    computes = host_instance[inputs['additional_controller']:]
-    computes_ip = computes_controllers[inputs['additional_controller']:]
+    controls = host_instance[:inputs['additional_control']]
+    controls_ip = computes_controllers[:inputs['additional_control']]
+    computes = host_instance[inputs['additional_control']:]
+    computes_ip = computes_controllers[inputs['additional_control']:]
   # increase computes size
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': 'multinode.yml', 'variables':{'primary':primary, 'controllers': controller_ip, 'computes': computes_ip, 'repository': inputs['repository'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch']}})
-    contrail_host.provision.extend([{'method':'file', 'source':"\"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/all.sh\"", 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch']}})
+    contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path,"/scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
     if 'contrail_command_ip' in inputs.keys():
@@ -452,9 +455,9 @@ def three_node_vqfx(inputs):
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
     Optional('template') : str,
-    Optional('repository') : And(str, lambda repo: validate_repository(repo)),
+    Optional('registry') : And(str, lambda repo: validate_registry(repo)),
     Optional('additional_compute') : int,
-    Optional('additional_controller'): int,
+    Optional('additional_control'): int,
     Optional('openstack_version'): str,
     Optional('contrail_deployer_branch'): str}).validate(inputs)
 
@@ -471,15 +474,11 @@ def three_node_vqfx(inputs):
   hosts = get_keys('node',nodes_count)
   # setting up keys for all the switches
   switches = get_keys('switch', 1)
-  # add contrail_command_to_hosts
-  # setting up the base box
-  #model = {}
-  #model = set_model(model, hosts,'CENTOS')
-  #model = set_model(model, switches,'VQFX')
   # setting management ips if given for nodes and setting up vboxnet interface if there is less management ips
   interfaces = {}
   # setting up interfaces
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts, inputs['management_ip'], interfaces, {}, inputs['internal_network'])
+  # add contrail_command_to_hosts
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
   ctrl_data_ip, gateway, interfaces = set_up_switch_host_interfaces(interfaces, hosts, switches[0])
@@ -492,7 +491,7 @@ def three_node_vqfx(inputs):
   host_instance = []
   for node in hosts:
     if node is not 'command':
-      host_instance.append(vm.CENTOS(name=host_names[node], flavour="medium", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': 'base_pkgs.yml', 'variables':{}}]))
+      host_instance.append(vm.CENTOS(name=host_names[node], flavour="medium", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
   # take out the last node instance make it controller and install contrail with this as host
   if 'contrail_version' in inputs.keys():
@@ -503,16 +502,16 @@ def three_node_vqfx(inputs):
     update_kernel(release,host_instance)
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
-    controllers = host_instance[:inputs['additional_controller']]
-    controller_ip = computes_controllers[:inputs['additional_controller']]
-    computes = host_instance[inputs['additional_controller']:]
-    computes_ip = computes_controllers[inputs['additional_controller']:]
+    controls = host_instance[:inputs['additional_control']]
+    controls_ip = computes_controllers[:inputs['additional_control']]
+    computes = host_instance[inputs['additional_control']:]
+    computes_ip = computes_controllers[inputs['additional_control']:]
     # allocate more memory for computes
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': 'multinode.yml', 'variables':{'primary':primary, 'controllers': controller_ip, 'computes': computes_ip, 'repository': inputs['repository'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch']}})
-    contrail_host.provision.extend([{'method':'file', 'source':"\"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/all.sh\"", 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch']}})
+    contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     
     if 'contrail_command_ip' in inputs.keys():
@@ -545,7 +544,7 @@ def devenv(inputs):
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   print(management_ip, interfaces)
-  s1 = vm.CENTOS(str(inputs['name']+"-devenv"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': 'dev-lite.yml', 'variables': {}}])
+  s1 = vm.CENTOS(str(inputs['name']+"-devenv"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'kernel-957.yml')), 'variables':{}},{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'dev_lite.yml')), 'variables': {}}])
   # no switches one server
 
   dirname = create_workspace(inputs['name'])
@@ -556,7 +555,7 @@ def devenv(inputs):
 def all_in_one(inputs):
   # validate schema
   if 'dpdk_compute' not in inputs.keys():
-    inputs['dpdk_compute'] = False
+    inputs['dpdk_compute'] = 0
 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     Optional('management_ip') : 
@@ -572,7 +571,7 @@ def all_in_one(inputs):
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))}, 
     Optional('template') : str,
     Optional('dpdk_compute') : bool,
-    Optional('repository') : And(str, lambda repo: validate_repository(repo)),
+    Optional('registry') : And(str, lambda repo: validate_registry(repo)),
     Optional('openstack_version'): str,
     Optional('contrail_deployer_branch'): str}).validate(inputs)
 
@@ -587,7 +586,7 @@ def all_in_one(inputs):
   interfaces = {}
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
-  host_instance.append(vm.CENTOS(str(inputs['name']+"-aio"), inputs['flavour'], management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': 'base_pkgs.yml', 'variables': {}}]))
+  host_instance.append(vm.CENTOS(str(inputs['name']+"-aio"), inputs['flavour'], management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}]))
   if 'contrail_version' in inputs.keys():
     if inputs['management_ip'] != []:
       vm_ip = management_ip['node1']['ip']
@@ -602,7 +601,7 @@ def all_in_one(inputs):
     else:
       release = "undefined"
     update_kernel(release,host_instance)
-    host_instance[0].provision.extend([{'method': 'ansible', 'path': 'all.yml', 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'repository': inputs['repository'], 'dpdk_compute':inputs['dpdk_compute'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}},{'method':'file', 'source':"\"/root/lab-in-a-server/all-in-one/vagrant_vm/ansible/scripts/all.sh\"", 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
+    host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'registry': inputs['registry'], 'dpdk_compute':inputs['dpdk_compute'], 'contrail_depolyer_branch':inputs['contrail_depolyer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
     if 'contrail_command_ip' in inputs.keys():
       host_instance.append(get_contrail_command(inputs,name=str(inputs['name']+"-command"),flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=[]))
@@ -766,14 +765,7 @@ if __name__ == '__main__':
   delete_topology.add_argument("topology_name", help = "name of the topology to be destroyed",  type = lambda x: validate_topology_name_deletion(x))
   
   args = parser.parse_args()
-  print(args)
+  #print(args)
   #print(args.command)
   globals()[args.command](args)
-  #input_vars = parse_input_file(args.file_name)
-  #pprint.pprint(input_vars)
-  #print(globals())
-  #config = globals()[input_vars['template']](input_vars)
-  #three_node({'name':'abc', 'management_ips':{}, 'additional_nodes':0})
-  #print(globals())
-
-
+  

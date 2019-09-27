@@ -169,6 +169,19 @@ def validate_devenv_branch(input_branch):
     print(all_branches)
     return False
 
+def validate_deployer_branch(input_branch):
+  git_list_branch_api = "https://api.github.com/repos/Juniper/contrail-ansible-deployer/branches"
+  branches_info = requests.get(git_list_branch_api).json()
+  all_branches = []
+  for branch in branches_info:
+    all_branches.append(branch['name'])
+  if input_branch in all_branches:
+    return True
+  else:
+    print(Fore.RED + "Note: " + Fore.WHITE + "The branch name can be one among - ")
+    print(all_branches)
+    return False
+
 #########################set defaults
 
 def set_defaults(inputs):
@@ -401,7 +414,7 @@ def three_node(inputs):
     Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
     Optional('registry'): And(str, lambda repo: validate_registry(repo)),
     Optional('openstack_version'): str,
-    Optional('contrail_deployer_branch'): str,
+    Optional('contrail_deployer_branch'): And(str, lambda value: validate_deployer_branch(value)),
     Optional('internal_network'): bool,
     Optional('template'): str}).validate(inputs)
   
@@ -441,7 +454,7 @@ def three_node(inputs):
       print(compute_node)
       compute_node.flavour = "large"
     contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
-    contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path,"/scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
+    contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path,"scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
     if 'contrail_command_ip' in inputs.keys():
@@ -469,7 +482,7 @@ def three_node_vqfx(inputs):
     Optional('internal_network'): bool,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)), 
     Optional('contrail_command_ip'): 
-    {'ip' : And(str, lambda ip: validate_managementip(ip)), 
+    {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
     Optional('template') : str,
@@ -477,7 +490,7 @@ def three_node_vqfx(inputs):
     Optional('additional_compute') : int,
     Optional('additional_control'): int,
     Optional('openstack_version'): str,
-    Optional('contrail_deployer_branch'): str}).validate(inputs)
+    Optional('contrail_deployer_branch'): And(str, lambda value: validate_deployer_branch(value))}).validate(inputs)
 
   set_defaults(inputs)
 
@@ -550,7 +563,7 @@ def devenv(inputs):
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     'branch' : And(str, lambda value: validate_devenv_branch(value)),
     Optional('management_ip') : 
-    {'ip' : And(str, lambda ip: validate_managementip(ip)), 
+    {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))}, 
     Optional('internal_network') : bool, 
@@ -563,7 +576,7 @@ def devenv(inputs):
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   print(management_ip, interfaces)
-  s1 = vm.CENTOS(str(inputs['name']+"-devenv"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'kernel-957.yml')), 'variables':{}},{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'dev_lite.yml')), 'variables': {}}])
+  s1 = vm.CENTOS(str(inputs['name']+"-devenv"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'dev-lite.yml')), 'variables': {'branch': inputs['branch']}}])
   # no switches one server
 
   dirname = create_workspace(inputs['name'])
@@ -578,21 +591,21 @@ def all_in_one(inputs):
 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     Optional('management_ip') : 
-    {'ip' : And(str, lambda ip: validate_managementip(ip)), 
+    {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))}, 
     Optional('contrail_version'): str, 
     Optional('internal_network') : bool, 
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)), 
     Optional('contrail_command_ip'): 
-    {'ip' : And(str, lambda ip: validate_managementip(ip)), 
+    {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))}, 
     Optional('template') : str,
     Optional('dpdk_compute') : bool,
     Optional('registry') : And(str, lambda repo: validate_registry(repo)),
     Optional('openstack_version'): str,
-    Optional('contrail_deployer_branch'): str}).validate(inputs)
+    Optional('contrail_deployer_branch'): And(str, lambda value: validate_deployer_branch(value))}).validate(inputs)
 
   set_defaults(inputs)
 

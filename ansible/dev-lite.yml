@@ -9,4 +9,5 @@
     - dev_pkgs
     - devenv
   vars:
-    set_root_pass: 'mpls'
+    set_root_pass: 'contrail'
+    branch: 'master'

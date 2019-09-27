@@ -43,3 +43,23 @@
   pip:
     name: geventhttpclient
     state: latest
+
+- name: Install cscope 
+  yum:
+    name: cscope 
+    state: latest
+
+- name: Install bzip2-devel
+  yum:
+    name: bzip2-devel
+    state: latest
+
+- name: Install openssl
+  yum:
+    name: openssl-devel
+    state: latest
+
+- name: Install python36
+  yum:
+    name: python36
+    state: present

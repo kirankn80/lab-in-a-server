@@ -210,7 +210,7 @@ class VQFX(Switch):
           vlan_id: {},
           gateway_ip: \"{}\"
       }}
-      end""".format(os.path.join(ansible_scripts_path, 'switch_interface.yml'), "%s"%os.path.join(par_dir,inputs['name']), self.re_name, len(self.interfaces), 101, self.gateway)
+      end""".format(os.path.join(ansible_scripts_path, 'switch_interface.yml'), "%s"%os.path.join(par_dir, self.name.rsplit("-",1)[0]), self.re_name, len(self.interfaces), 101, self.gateway)
     config = config.replace("VAR_PLACEHOLDER",str("switch"+"re"))
     config = config + """
     end"""

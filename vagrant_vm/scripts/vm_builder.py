@@ -79,17 +79,18 @@ def validate_file(file_name):
 
 def validate_topology_name_creation(name):
   if not os.path.exists(info_file):
-    print("info file not found in path")
+    print(Fore.RED + "Note: " + Fore.WHITE + "info file not found in path")
     return False
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
   if name in info.keys():
+    print(Fore.RED + "Note: " + Fore.WHITE + "Topology exists with name %s"%(name))
     return False 
   return True
 
 def validate_topology_name_deletion(name):
   if not os.path.exists(info_file):
-    print("info file not found in path")
+    print(Fore.RED + "Note: " + Fore.WHITE + "info file not found in path")
     parser.error("File %s not found in the path"%(info_file))
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
@@ -99,7 +100,7 @@ def validate_topology_name_deletion(name):
 
 def validate_topology_name_view(name):
   if not os.path.exists(info_file):
-    print("info file not found in path")
+    print(Fore.RED + "Note: " + Fore.WHITE + "info file not found in path")
     parser.error("File %s not found in the path"%(info_file))
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
@@ -125,7 +126,7 @@ def validate_tnv_additional_nodes(inputs,n):
   else:
     if n < 3:
       return True
-  print("Total number of nodes connected to switch cannot exceed 5")
+  print(Fore.RED + "Note: " + Fore.WHITE + "Total number of nodes connected to switch cannot exceed 5")
   return False
     
 
@@ -133,23 +134,40 @@ def validate_tnv_dpdk_computes(inputs,n):
   an = inputs['additional_nodes']
   if n <= (2 + inputs['additional_compute']):
     return True
-  print("Total number of dpdk computes cannot be greater than {}".format(an+2))
+  print(Fore.RED + "Note: " + Fore.WHITE + "Total number of dpdk computes cannot be greater than {}".format(an+2))
   return False
 
 def validate_contrail_command(inputs,command_ip):
-  if 'contrail_version' in inputs.keys():
-    print("contrail version is to be specified")
-    return True
+  if 'contrail_version' not in inputs.keys():
+    print(Fore.RED + "Note: " + Fore.WHITE + "contrail version is to be specified for having contrail command")
+    return False
+  return True
 
 def validate_tn_dpdk_computes(inputs,n):
   if n <= inputs['additional_compute']+2:
     return True
+  print(Fore.RED + "Note: " + Fore.WHITE + "The number of dpdk computes cannot be greater than total number of computes")
   return False
 
 def validate_registry(repo):
   if repo in ['cirepo', 'nodei40', 'hub']:
     return True
+  print(Fore.RED + "Note: " + Fore.WHITE + "The value for registry should be one among -")
+  print(['cirepo', 'nodei40', 'hub'])
   return False
+
+def validate_devenv_branch(input_branch):
+  git_list_branch_api = "https://api.github.com/repos/Juniper/contrail-dev-env/branches"
+  branches_info = requests.get(git_list_branch_api).json()
+  all_branches = []
+  for branch in branches_info:
+    all_branches.append(branch['name'])
+  if input_branch in all_branches:
+    return True
+  else:
+    print(Fore.RED + "Note: " + Fore.WHITE + "The branch name can be one among - ")
+    print(all_branches)
+    return False
 
 #########################set defaults
 
@@ -530,6 +548,7 @@ def three_node_vqfx(inputs):
 def devenv(inputs):
   # validate schema 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
+    'branch' : And(str, lambda value: validate_devenv_branch(value)),
     Optional('management_ip') : 
     {'ip' : And(str, lambda ip: validate_managementip(ip)), 
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 

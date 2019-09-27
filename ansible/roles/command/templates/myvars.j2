@@ -1,3 +1,10 @@
-export CCD_IMAGE={{ repository }}:5010/contrail-command-deployer:{{ contrail_version }}
+{% if registry == 'nodei40' %}
+  {% set repository = "nodei40.englab.juniper.net:5000" %}
+{% elif registry == 'hub' %}
+  {% set repository = "hub.juniper.net/contrail-nightly" %}
+{% else %}
+  {% set repository = "ci-repo.englab.juniper.net:5010" %}
+{% endif %}
+export CCD_IMAGE={{ repository }}/contrail-command-deployer:{{ contrail_version }}
 export COMMAND_SERVERS_FILE=/tmp/command_servers.yml
 export INSTANCES_FILE=/tmp/instances.yml

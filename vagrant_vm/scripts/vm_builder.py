@@ -634,8 +634,15 @@ def all_in_one(inputs):
   if 'contrail_version' in inputs.keys():
     if inputs['management_ip'] != []:
       vm_ip = management_ip['node1']['ip']
+      if 'contrail_command_ip' in inputs.keys():
+        command_vm_ip = inputs['contrail_command_ip']['ip']
+        management_ip['command'] = inputs['contrail_command_ip']
     elif vboxnet_ip != {}:
       vm_ip = vboxnet_ip['node1']
+      if 'contrail_command_ip' in inputs.keys():
+        vboxnet_ip, interfaces = set_vboxnet_ips(['command'], interfaces, vboxnet_ip)
+        command_vm_ip = vboxnet_ip['command']
+        management_ip['command'] = {}
     else:
       print("cannot install contrail without ip\n")
       sys.exit()
@@ -648,10 +655,10 @@ def all_in_one(inputs):
     host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
     if 'contrail_command_ip' in inputs.keys():
-      host_instance.append(get_contrail_command(inputs,name=str(inputs['name']+"-command"),flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=[]))
+      host_instance.append(get_contrail_command(inputs,name=str(inputs['name']+"-command"),flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname,"Vagrantfile"))
-  insert_topo_info(inputs['name'], ['node1'], {'node1': str(inputs['name']+"-aio")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {})
+  insert_topo_info(inputs['name'], ['node1', 'command'], {'node1': str(inputs['name']+"-aio"), 'command': str(inputs['name']+"-command")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {})
   return dirname
 
 ##################### subparser functions

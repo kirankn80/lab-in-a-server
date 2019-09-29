@@ -117,7 +117,8 @@ def parse_input_file(file_name):
 def validate_flavour(flavour):
   if flavour in vm.flavour.keys():
     return True
-  parser.error("Flavour %s does not exist"%(flavour))
+  print(Fore.RED + "Note:" + Fore.WHITE + "Flavour %s does not exist"%(flavour))
+  return False
 
 def validate_tnv_additional_nodes(inputs,n):
   if 'contrail_command_ip' in inputs.keys() and 'contrail_version' in inputs.keys():

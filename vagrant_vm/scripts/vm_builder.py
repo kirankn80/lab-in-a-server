@@ -242,6 +242,14 @@ def get_contrail_deployer_branch(contrail_version):
   print("No matching version found \n checking out {} branch in contrail ansible deployer".format("master"))
   return("master", "master")
 
+def check_for_devenv_vm_init_script(devbranch):
+	git_vm_script_path = "https://raw.githubusercontent.com/Juniper/contrail-dev-env/BRANCH/vm-dev-env/init.sh"
+	git_vm_script_path = git_vm_script_path.replace("BRANCH", devbranch)
+	response = requests.get(git_vm_script_path)
+	if response.status_code == 404:
+		return "dev-lite-container.yml"
+	else:
+		return "dev-lite.yml"
 
 ################## network address allocation functions
 
@@ -385,9 +393,9 @@ def destroy_workspace(dirname):
 
 ############### topology creation and provisioning
 
-def get_contrail_command(inputs,name,flavour,management_ip,interfaces):
+def get_contrail_command(inputs,name,flavour,management_ip,interfaces,vm_ip):
   x = vm.CENTOS(name, flavour,management_ip, interfaces, [\
-      {'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'ui.yml')), 'variables': {'vm_ip': inputs['contrail_command_ip']['ip'], 'contrail_version': inputs['contrail_version'], 'ntp_server': 'ntp.juniper.net', 'registry': inputs['registry'], 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}}, \
+      {'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'ui.yml')), 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'ntp_server': 'ntp.juniper.net', 'registry': inputs['registry'], 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}}, \
       {'method': 'shell', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'scripts/docker.sh'))},
       {'method': 'file', 'source': "\"%s\""%(os.path.join(ansible_scripts_path, 'scripts/cc.sh')), 'destination': "\"/tmp/cc.sh\""},
       {'method': 'shell', 'inline': "\"chmod +x /tmp/cc.sh && /tmp/cc.sh\""}])
@@ -427,6 +435,8 @@ def three_node(inputs):
   # add contrail_command_to_hosts
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
+    management_data['command'] = inputs['contrail_command_ip']
+
   # control_data_ip is hostonly ip
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
   host_names = get_host_names(inputs['name'], {}, hosts)
@@ -458,7 +468,7 @@ def three_node(inputs):
     host_instance.append(contrail_host)
 
     if 'contrail_command_ip' in inputs.keys():
-      host_instance.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command']))
+      host_instance.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
   
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname,"Vagrantfile"))
@@ -512,6 +522,8 @@ def three_node_vqfx(inputs):
   # add contrail_command_to_hosts
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
+    management_data['command'] = inputs['contrail_command_ip']
+
   ctrl_data_ip, gateway, interfaces = set_up_switch_host_interfaces(interfaces, hosts, switches[0])
   # setting up dummy hostname //?? required??
   host_names = {}
@@ -546,7 +558,7 @@ def three_node_vqfx(inputs):
     host_instance.append(contrail_host)
     
     if 'contrail_command_ip' in inputs.keys():
-      host_instance.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command']))
+      host_instance.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
 
   for switch in switches:
     switch_instance.append(vm.VQFX(host_names[switch], gateway, interfaces[switch]))
@@ -576,7 +588,7 @@ def devenv(inputs):
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   print(management_ip, interfaces)
-  s1 = vm.CENTOS(str(inputs['name']+"-devenv"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'dev-lite.yml')), 'variables': {'branch': inputs['branch']}}])
+  s1 = vm.CENTOS(str(inputs['name']+"-devenv"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
   # no switches one server
 
   dirname = create_workspace(inputs['name'])

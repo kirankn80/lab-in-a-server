@@ -1,0 +1,20 @@
+---
+- name: Provision headless dev vm
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - setup_root
+    - base_pkgs
+    - dev_pkgs
+
+  tasks:
+    - name: clone contrail-dev-env
+      git:
+        repo: https://github.com/Juniper/contrail-dev-env.git
+        dest: /root/contrail-dev-env
+        version: "{{ branch }}"
+   
+  vars:
+    set_root_pass: 'contrail'
+    branch: 'master'

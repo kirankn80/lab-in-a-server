@@ -606,7 +606,7 @@ def devenv(inputs):
 
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file([s1], [], file_name=os.path.join(dirname,"Vagrantfile"))
-  insert_topo_info(inputs[template], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {}, contrail_version=None)
+  insert_topo_info(inputs['template'], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {}, contrail_version=None)
   return dirname
 
 def all_in_one(inputs):

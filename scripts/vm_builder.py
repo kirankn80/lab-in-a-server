@@ -695,7 +695,7 @@ def show(args):
   instances_file_path = os.path.join(dirname, "config/instances.yaml")
   if not os.path.exists(instances_file_path):
     print(Fore.RED + "Note:" + Fore.WHITE + "instances file does not exist")
-    instance_file_path = "DOES NOT EXIST"
+    instances_file_path = "DOES NOT EXIST"
   table = PrettyTable(['Host Name', 'Public Ip Address', 'Private IP Address', 'Control/Data IP Address', 'Role'])
   for host in topo_info['hosts']:
     row = []

@@ -480,6 +480,8 @@ def three_node(inputs):
   
   else:
     contrail_version = inputs['contrail_version']
+    if 'command' in hosts:
+      del host_names['command']
 
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname,"Vagrantfile"))

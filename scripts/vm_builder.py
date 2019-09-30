@@ -445,6 +445,8 @@ def three_node(inputs):
   # control_data_ip is hostonly ip
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
   host_names = get_host_names(inputs['name'], {}, hosts)
+  if 'command' in hosts:
+    host_names['command'] = str("node"+ str(len(host_names)-1))
   host_instance = []
   computes_controllers = []
   for node in hosts:
@@ -538,6 +540,9 @@ def three_node_vqfx(inputs):
   host_names = {}
   host_names = get_host_names(inputs['name'], host_names, hosts)
   host_names = get_host_names(inputs['name'], host_names, switches)
+  if 'command' in hosts:
+    host_names['command'] = str("node"+ str(len(host_names)-1))
+
   switch_instance = []
   computes_controllers = []
   host_instance = []

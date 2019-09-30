@@ -732,6 +732,7 @@ def show(args):
     table.align["Fields"] = "l"
     table.align["Values"] = "l"
     print(table)
+    print("\n")
 
 def list_vm(args):
   if not os.path.exists(info_file):

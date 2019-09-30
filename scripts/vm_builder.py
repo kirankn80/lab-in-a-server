@@ -701,41 +701,35 @@ def show(args):
   if not os.path.exists(instances_file_path):
     print(Fore.RED + "Note:" + Fore.WHITE + "instances file does not exist")
     instances_file_path = "DOES NOT EXIST"
-  table = PrettyTable(['Host Name', 'Public Ip Address', 'Private IP Address', 'Control/Data IP Address', 'Role'])
   for host in topo_info['hosts']:
-    row = []
-    row.append(topo_info['hostnames'][host])
-    if host not in topo_info['management_data'].keys():
-      row.append(None)
+    table = PrettyTable(['Fields', 'Values'])
+    table.add_row(["hostname", topo_info['hostnames'][host]])
+    if host not in topo_info['management_data'].keys() or if topo_info['management_data'][host] == {}:
+      table.add_row(["public ip", None])
     else:
-      if topo_info['management_data'][host] == {}:
-        row.append(None)
-      else:
-        row.append(topo_info['management_data'][host])
+      table.add_row(["public ip", topo_info['management_data'][host]['ip']])
+      table.add_row(["netmask", topo_info['management_data'][host]['netmask']])
+      table.add_row(["default gateway", topo_info['management_data'][host]['ip']])
     if host not in topo_info['vboxnet_interfaces'].keys():
-      row.append(None)
+      table.add_row(["private ip", None])
     else:
-      row.append(topo_info['vboxnet_interfaces'][host])
+      table.add_row(["private_ip", topo_info['vboxnet_interfaces'][host]])
     if host not in topo_info['ctrl_data_ip'].keys():
-      row.append(None)
+      table.add_row(["control/data ip", None])
     else:
-      row.append(topo_info['ctrl_data_ip'][host])
+      table.add_row(["control/data ip", topo_info['ctrl_data_ip'][host]])
     if instances_file_path != "DOES NOT EXIST":
       contrail_info = yaml.load(open(instances_file_path, "r"), Loader = yaml.FullLoader)
       if topo_info['hostnames'][host] in contrail_info['instances'].keys():
         ins = contrail_info['instances'][topo_info['hostnames'][host]]
-        if 'control' in ins['roles'].keys():
-          role = "control"
-        if 'vrouter' in ins['roles'].keys():
-          role = "compute"
-        if 'control' in ins['roles'].keys() and 'vrouter' in ins['roles'].keys():
-          role = "control and compute"
+        roles = []
+        for role in ins['roles'].keys():
+          roles.append(role)
       if host == 'command':
-        role = "command"
+        roles = "command"
     else:
-      role = None
-    row.append(role)
-    table.add_row(row)
+      roles = None
+    table.add_row(["roles", roles])
   print(table)
 
 def list_vm(args):

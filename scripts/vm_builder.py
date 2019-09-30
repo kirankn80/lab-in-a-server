@@ -719,7 +719,7 @@ def show(args):
     row.append(role)
   print(table)
 
-def list(args):
+def list_vm(args):
   if not os.path.exists(info_file):
     print("info file not found in path")
     sys.exit()

@@ -724,7 +724,7 @@ def show(args):
         if 'vrouter' in ins['roles'].keys():
           role = "compute"
         if 'control' in ins['roles'].keys() and 'vrouter' in ins['roles'].keys():
-          role = "control and compute/%s"
+          role = "control and compute"
       if host == 'command':
         role = "command"
     else:

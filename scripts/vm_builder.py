@@ -703,7 +703,10 @@ def show(args):
     if host not in topo_info['management_data'].keys():
       row.append(None)
     else:
-      row.append(topo_info['management_data'][host])
+      if topo_info['management_data'][host] == {}:
+        row.append(None)
+      else:
+        row.append(topo_info['management_data'][host])
     if host not in topo_info['vboxnet_interfaces'].keys():
       row.append(None)
     else:

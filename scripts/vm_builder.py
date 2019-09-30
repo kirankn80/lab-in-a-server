@@ -721,15 +721,14 @@ def show(args):
     if instances_file_path != "DOES NOT EXIST":
       contrail_info = yaml.load(open(instances_file_path, "r"), Loader = yaml.FullLoader)
       if topo_info['hostnames'][host] in contrail_info['instances'].keys():
+        table.add_row(["roles", ""])
         ins = contrail_info['instances'][topo_info['hostnames'][host]]
-        roles = []
         for role in ins['roles'].keys():
-          roles.append(role)
+          table.add_row(["", role])
       if host == 'command':
-        roles = "command"
+        table.add_row(["roles", "command"])
     else:
-      roles = None
-    table.add_row(["roles", roles])
+      table.add_row(["roles", None])
     print(table)
 
 def list_vm(args):

@@ -730,7 +730,7 @@ def show(args):
     else:
       roles = None
     table.add_row(["roles", roles])
-  print(table)
+    print(table)
 
 def list_vm(args):
   if not os.path.exists(info_file):

@@ -726,6 +726,7 @@ def show(args):
     else:
       role = None
     row.append(role)
+    table.add_row(row)
   print(table)
 
 def list_vm(args):

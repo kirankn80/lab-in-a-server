@@ -718,6 +718,7 @@ def show(args):
     if instances_file_path != "DOES NOT EXIST":
       contrail_info = yaml.load(open(instances_file_path, "r"), Loader = yaml.FullLoader)
       if topo_info['hostnames'][host] in contrail_info['instances'].keys():
+        ins = contrail_info['instances'][topo_info['hostnames'][host]]
         if 'control' in ins['roles'].keys():
           role = "control"
         if 'vrouter' in ins['roles'].keys():

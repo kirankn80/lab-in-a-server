@@ -833,7 +833,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   subparser = parser.add_subparsers(dest = 'command')
   create_topology = subparser.add_parser("create", help = "create vagrant file")
-  list_topology = subparser.add_parser("list_vm", help = "list topology details")
+  list_topology = subparser.add_parser("list", help = "list topology details")
   show_topology = subparser.add_parser("show", help = "show individual topology details")
   delete_topology = subparser.add_parser("destroy", help = "delete topology")
   # create topology has mandatory file name as argument
@@ -845,6 +845,8 @@ if __name__ == '__main__':
   
   args = parser.parse_args()
   #print(args)
-  #print(args.command)
-  globals()[args.command](args)
+  if args.command == "list":
+    list_vm(args)
+  else:
+    globals()[args.command](args)
   

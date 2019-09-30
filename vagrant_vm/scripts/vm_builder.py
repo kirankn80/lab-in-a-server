@@ -643,7 +643,7 @@ def all_in_one(inputs):
       if 'contrail_command_ip' in inputs.keys():
         vboxnet_ip, interfaces = set_vboxnet_ips(['command'], interfaces, vboxnet_ip)
         command_vm_ip = vboxnet_ip['command']
-        management_ip['command'] = {}
+        management_ip['command'] = inputs['contrail_command_ip']
     else:
       print("cannot install contrail without ip\n")
       sys.exit()

@@ -14,6 +14,7 @@ import requests
 from colorama import Fore, init
 import subprocess
 from schema import *
+from prettytable import PrettyTable
 import vm_models as vm
 
 ############# global vars
@@ -346,9 +347,12 @@ def set_up_switch_switch_interfaces(interfaces, switch1, switch2):
   return interfaces
 
 ############### update info file 
-def insert_topo_info(name, hosts, host_names, management_ips = {}, vboxnet_ips = {}, ctrl_data_ips = {}):
+def insert_topo_info(template, name, hosts, host_names, management_ips = {}, vboxnet_ips = {}, ctrl_data_ips = {}, contrail_version = None):
   topo_info = {}
   print(os.path.join(par_dir, name))
+  topo_info['contrail_version'] = contrail_version
+  topo_info['hosts'] = hosts
+  topo_info['template'] = template
   topo_info['dirname'] = os.path.join(par_dir, name)
   topo_info['host_vboxnet_ip'] = host_vboxnet_ip
   topo_info['management_data'] = management_ips
@@ -449,6 +453,7 @@ def three_node(inputs):
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
 
   if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     else:
@@ -471,9 +476,12 @@ def three_node(inputs):
     if 'contrail_command_ip' in inputs.keys():
       host_instance.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
   
+  else:
+    contrail_version = inputs['contrail_version']
+
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname,"Vagrantfile"))
-  insert_topo_info(inputs['name'], hosts, host_names, management_ips = management_data, vboxnet_ips = vboxnet_ip, ctrl_data_ips = ctrl_data_ip)
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips = management_data, vboxnet_ips = vboxnet_ip, ctrl_data_ips = ctrl_data_ip, contrail_version=contrail_version)
   return dirname
 
 # depends on input parameters
@@ -539,6 +547,7 @@ def three_node_vqfx(inputs):
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
   # take out the last node instance make it controller and install contrail with this as host
   if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     else:
@@ -560,13 +569,16 @@ def three_node_vqfx(inputs):
     
     if 'contrail_command_ip' in inputs.keys():
       host_instance.append(get_contrail_command(inputs,name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
+  
+  else:
+    contrail_version = None
 
   for switch in switches:
     switch_instance.append(vm.VQFX(host_names[switch], gateway, interfaces[switch]))
 
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, switch_instance, file_name=os.path.join(dirname,"Vagrantfile"))
-  insert_topo_info(inputs['name'], hosts, host_names, management_ips = management_data, vboxnet_ips = vboxnet_ip, ctrl_data_ips = ctrl_data_ip)
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips = management_data, vboxnet_ips = vboxnet_ip, ctrl_data_ips = ctrl_data_ip, contrail_version=contrail_version)
   return dirname
 
 
@@ -589,12 +601,12 @@ def devenv(inputs):
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   print(management_ip, interfaces)
-  s1 = vm.CENTOS(str(inputs['name']+"-devenv"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
+  s1 = vm.CENTOS(str(inputs['name']+"-node1"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
   # no switches one server
 
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file([s1], [], file_name=os.path.join(dirname,"Vagrantfile"))
-  insert_topo_info(inputs['name'], ['node1'], {'node1': str(inputs['name']+"-devenv")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {})
+  insert_topo_info(inputs[template], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {}, contrail_version=None)
   return dirname
 
 def all_in_one(inputs):
@@ -631,8 +643,9 @@ def all_in_one(inputs):
   interfaces = {}
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
-  host_instance.append(vm.CENTOS(str(inputs['name']+"-aio"), inputs['flavour'], management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}]))
+  host_instance.append(vm.CENTOS(str(inputs['name']+"-node1"), inputs['flavour'], management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}]))
   if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
     if inputs['management_ip'] != []:
       vm_ip = management_ip['node1']['ip']
       if 'contrail_command_ip' in inputs.keys():
@@ -646,73 +659,81 @@ def all_in_one(inputs):
         management_ip['command'] = inputs['contrail_command_ip']
     else:
       print("cannot install contrail without ip\n")
-      sys.exit()
-
+      sys.exit()      
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     else:
       release = "undefined"
     update_kernel(release,host_instance)
-    host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
+    host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir,inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
     if 'contrail_command_ip' in inputs.keys():
-      host_instance.append(get_contrail_command(inputs,name=str(inputs['name']+"-command"),flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
+      host_instance.append(get_contrail_command(inputs,name=str(inputs['name']+"-node2"),flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
+  else:
+    contrail_version = None
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname,"Vagrantfile"))
-  insert_topo_info(inputs['name'], ['node1', 'command'], {'node1': str(inputs['name']+"-aio"), 'command': str(inputs['name']+"-command")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {})
+  insert_topo_info(inputs['template'], inputs['name'], ['node1', 'command'], {'node1': str(inputs['name']+"-node1"), 'command': str(inputs['name']+"-node2")}, management_ips = management_ip, vboxnet_ips = vboxnet_ip, ctrl_data_ips = {}, contrail_version=contrail_version)
   return dirname
 
 ##################### subparser functions
-
-def print_info(args, topology_name, topo_info):
-  all_args = 0
-  if not (args.publicip or args.hostnames or args.privateip or args.ctrldataip or args.dirname):
-    all_args = 1
-  if args.publicip or all_args:
-    print(Fore.BLUE + "public ip:")
-    for k,v in topo_info['management_data'].items():
-      print(Fore.GREEN + "%s : "%(topo_info['hostnames'][k])+ Fore.WHITE + "%s"%(v))
-  if args.hostnames or all_args:
-    print(Fore.BLUE + "hostname:")
-    for k,v in topo_info['hostnames'].items():
-      print(Fore.GREEN + "%s"%(v))
-  if args.privateip or all_args:
-    print(Fore.BLUE + "private ip:")
-    for k,v in topo_info['vboxnet_interfaces'].items():
-      print(Fore.GREEN + "%s : "%(topo_info['hostnames'][k])+ Fore.WHITE + "%s"%(v))
-  if args.ctrldataip or all_args:
-    print(Fore.BLUE + "control data interfaces:")
-    for k,v in topo_info['ctrl_data_ip'].items():
-      print(Fore.GREEN + "%s : "%(topo_info['hostnames'][k])+ Fore.WHITE + "%s"%(v))
-  if args.dirname or all_args:
-    print(Fore.BLUE + "working directory:")
-    print(Fore.GREEN + topology_name + " : "+Fore.WHITE+topo_info['dirname'])
-  
 
 def create(args):
   input_vars = parse_input_file(args.file_name)
   dir_name = globals()[input_vars['template']](input_vars)
   vagrant_up(dir_name)
 
-def view(args):
-  topology_name = args.topology_name
+def show(args):
   if not os.path.exists(info_file):
     print("info file not found in path")
     sys.exit()
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
-  if topology_name != "all" and topology_name not in info.keys():
-    print("topology %s not found"%(topology_name))
+  topology_name = args.topology_name
+  topo_info = info[topology_name]
+  dirname = topo_info['dirname']
+  instances_file_path = os.path.join(dirname, "config/instances.yaml")
+  if not os.path.exists(instances_file_path):
+    print(Fore.RED + "Note:" + Fore.WHITE + "instances file does not exist")
+    instance_file_path = "DOES NOT EXIST"
+  table = PrettyTable(['Host Name', 'Public Ip Address', 'Private IP Address', 'Control/Data IP Address', 'Role'])
+  for host in topo_info['hosts']:
+    row = []
+    row.append(topo_info['hostnames'][host])
+    row.append(topo_info['management_data'][host])
+    row.append(topo_info['vboxnet_interfaces'][host])
+    row.append(topo_info['ctrl_data_ip'][host])
+    if instances_file_path != "DOES NOT EXIST":
+      contrail_info = yaml.load(open(instances_file_path, "r"), Loader = yaml.FullLoader)
+      if topo_info['hostnames'][host] in contrail_info['instances'].keys():
+        if 'control' in ins['roles'].keys():
+          role = "control"
+        if 'vrouter' in ins['roles'].keys():
+          role = "compute"
+        if 'control' in ins['roles'].keys() and 'vrouter' in ins['roles'].keys():
+          role = "control and compute/%s"
+      if host == 'command':
+        role = "command"
+    else:
+      role = None
+    row.append(role)
+  print(table)
+
+def list(args):
+  if not os.path.exists(info_file):
+    print("info file not found in path")
     sys.exit()
-  if topology_name != "all":
-    print(Fore.CYAN + "%s"%topology_name)
-    topo_info = info[topology_name]
-    #print(topo_info)
-    print_info(args,topology_name, topo_info)
-  if topology_name == "all":
-    for k,v in info.items():
-      print(Fore.RED +"topology name: " + Fore.WHITE + "%s"%k)
-      print_info(args,k,v)
+  with open(info_file, "r") as info_file_handler:
+    info = json.load(info_file_handler)
+  table = PrettyTable(['Topology Name', 'Template', 'Contrail Version', 'Working Directory'])
+  for name, item in info.items():
+    row = []
+    row.append(name)
+    row.append(item['template'])
+    row.append(item['contrail_version'])
+    row.append(item['dirname'])
+    table.add_row(row)
+  print(table)
 
 def destroy(args):
   destory_command = ["vagrant", "destroy", "-f"]
@@ -797,22 +818,13 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   subparser = parser.add_subparsers(dest = 'command')
   create_topology = subparser.add_parser("create", help = "create vagrant file")
-  list_topology = subparser.add_parser("view", help = "list topology details")
+  list_topology = subparser.add_parser("list", help = "list topology details")
+  show_topology = subparser.add_parser("show", help = "show individual topology details")
   delete_topology = subparser.add_parser("destroy", help = "delete topology")
   # create topology has mandatory file name as argument
   create_topology.add_argument("file_name", help = "path to the config file", type = lambda x: validate_file(x))
   # list global i.e., for all keys
-  list_topology.add_argument("topology_name", help = "name of the topology or \"all\" for global status ", type = lambda x: validate_topology_name_view(x))
-  # list management ips
-  list_topology.add_argument("--publicip", help = "list management ip", action = "store_true")
-  # list  host_names
-  list_topology.add_argument("--hostnames", help = "list nodes in topology", action = "store_true")
-  # list  vboxnets
-  list_topology.add_argument("--privateip", help = "list all virtualbox networks", action = "store_true")
-  # list  ctrl_data_ips
-  list_topology.add_argument("--ctrldataip", help = "list all control data interfaces", action = "store_true")
-  # list dirname
-  list_topology.add_argument("--dirname", help = "directory where the topology is present", action = "store_true")
+  show_topology.add_argument("topology_name", help = "name of the topology or \"all\" for global status ", type = lambda x: validate_topology_name_view(x))
   # destroy vm 
   delete_topology.add_argument("topology_name", help = "name of the topology to be destroyed",  type = lambda x: validate_topology_name_deletion(x))
   

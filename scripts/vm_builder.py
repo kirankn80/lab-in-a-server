@@ -700,9 +700,18 @@ def show(args):
   for host in topo_info['hosts']:
     row = []
     row.append(topo_info['hostnames'][host])
-    row.append(topo_info['management_data'][host])
-    row.append(topo_info['vboxnet_interfaces'][host])
-    row.append(topo_info['ctrl_data_ip'][host])
+    if host not in topo_info['management_data'].keys():
+      row.append(None)
+    else:
+      row.append(topo_info['management_data'][host])
+    if host not in topo_info['vboxnet_interfaces'].keys():
+      row.append(topo_info['vboxnet_interfaces'][host])
+    else:
+      row.append(None)
+    if host not in topo_info['ctrl_data_ip'].keys():
+      row.append(topo_info['ctrl_data_ip'][host])
+    else:
+      row.append(None)
     if instances_file_path != "DOES NOT EXIST":
       contrail_info = yaml.load(open(instances_file_path, "r"), Loader = yaml.FullLoader)
       if topo_info['hostnames'][host] in contrail_info['instances'].keys():

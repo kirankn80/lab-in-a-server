@@ -18,7 +18,7 @@ provider_config:
     ntpserver: {{ ntp_server }}
     domainsuffix: local
 instances:
-  bms1:
+  {{ vm_name }}:
     ip: {{ vm_ip }}
     provider: bms
     roles:

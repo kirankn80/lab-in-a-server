@@ -729,6 +729,8 @@ def show(args):
         table.add_row(["roles", "command"])
     else:
       table.add_row(["roles", None])
+    table.align["Fields"] = "l"
+    table.align["Values"] = "l"
     print(table)
 
 def list_vm(args):

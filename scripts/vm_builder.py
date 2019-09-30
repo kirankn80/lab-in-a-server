@@ -731,7 +731,7 @@ def show(args):
       table.add_row(["roles", None])
     table.align["Fields"] = "l"
     table.align["Values"] = "l"
-    print(table.get_string(title = topo_info['hostnames'][host]))
+    print(table)
     print("\n")
 
 def list_vm(args):

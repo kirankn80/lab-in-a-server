@@ -436,7 +436,7 @@ def three_node(inputs):
   nodes_count = nodes_count + inputs['additional_nodes']
   hosts = get_keys('node',nodes_count)
   interfaces = {}
-  management_data, vboxnet_ip, interfaces = set_management_ips(hosts, inputs['management_ip'], interfaces, {}, inputs['internal_network'])
+  management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   # add contrail_command_to_hosts
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
@@ -446,7 +446,7 @@ def three_node(inputs):
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
   host_names = get_host_names(inputs['name'], {}, hosts)
   if 'command' in hosts:
-    host_names['command'] = str("node-"+ str(len(host_names)-1))
+    host_names['command'] = str(inputs['name']+"-node"+ str(len(host_names)-1))
   host_instance = []
   computes_controllers = []
   for node in hosts:
@@ -529,7 +529,7 @@ def three_node_vqfx(inputs):
   # setting management ips if given for nodes and setting up vboxnet interface if there is less management ips
   interfaces = {}
   # setting up interfaces
-  management_data, vboxnet_ip, interfaces = set_management_ips(hosts, inputs['management_ip'], interfaces, {}, inputs['internal_network'])
+  management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   # add contrail_command_to_hosts
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
@@ -541,7 +541,7 @@ def three_node_vqfx(inputs):
   host_names = get_host_names(inputs['name'], host_names, hosts)
   host_names = get_host_names(inputs['name'], host_names, switches)
   if 'command' in hosts:
-    host_names['command'] = str("node-"+ str(len(host_names)-1))
+    host_names['command'] = str(inputs['name']+"-node"+ str(len(host_names)-1))
 
   switch_instance = []
   computes_controllers = []

@@ -713,7 +713,7 @@ def show(args):
     if host not in topo_info['vboxnet_interfaces'].keys():
       table.add_row(["private ip", None])
     else:
-      table.add_row(["private_ip", topo_info['vboxnet_interfaces'][host]])
+      table.add_row(["private ip", topo_info['vboxnet_interfaces'][host]])
     if host not in topo_info['ctrl_data_ip'].keys():
       table.add_row(["control/data ip", None])
     else:
@@ -731,7 +731,7 @@ def show(args):
       table.add_row(["roles", None])
     table.align["Fields"] = "l"
     table.align["Values"] = "l"
-    print(table)
+    print(table.get_string(title = topo_info['hostnames'][host]))
     print("\n")
 
 def list_vm(args):

@@ -422,6 +422,10 @@ def three_node(inputs):
     {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
+    Optional('kolla_external_vip_address'): 
+    {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
+    'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
+    'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
     Optional('additional_compute') : int,
     Optional('additional_control'): int,
     Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
@@ -438,6 +442,8 @@ def three_node(inputs):
   interfaces = {}
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   # add contrail_command_to_hosts
+  if 'kolla_external_vip_address' not in inputs.keys():
+    kolla_ivip = 
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
     management_data['command'] = inputs['contrail_command_ip']
@@ -463,10 +469,10 @@ def three_node(inputs):
     update_kernel(release,host_instance)
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
-    controls = host_instance[:inputs['additional_control']]
-    controls_ip = computes_controllers[:inputs['additional_control']]
-    computes = host_instance[inputs['additional_control']:]
-    computes_ip = computes_controllers[inputs['additional_control']:]
+    computes = host_instance[:inputs['additional_compute']]
+    computes_ip = computes_controllers[:inputs['additional_compute']]
+    controls = host_instance[inputs['additional_compute']:]
+    controls_ip = computes_controllers[inputs['additional_compute']:]
   # increase computes size
     for compute_node in computes:
       print(compute_node)
@@ -562,10 +568,10 @@ def three_node_vqfx(inputs):
     update_kernel(release,host_instance)
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
-    controls = host_instance[:inputs['additional_control']]
-    controls_ip = computes_controllers[:inputs['additional_control']]
-    computes = host_instance[inputs['additional_control']:]
-    computes_ip = computes_controllers[inputs['additional_control']:]
+    computes = host_instance[:inputs['additional_compute']]
+    computes_ip = computes_controllers[:inputs['additional_compute']]
+    controls = host_instance[inputs['additional_compute']:]
+    controls_ip = computes_controllers[inputs['additional_compute']:]
     # allocate more memory for computes
     for compute_node in computes:
       print(compute_node)

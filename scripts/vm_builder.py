@@ -704,7 +704,7 @@ def show(args):
   for host in topo_info['hosts']:
     table = PrettyTable(['Fields', 'Values'])
     table.add_row(["hostname", topo_info['hostnames'][host]])
-    if host not in topo_info['management_data'].keys() or if topo_info['management_data'][host] == {}:
+    if host not in topo_info['management_data'].keys() or topo_info['management_data'][host] == {}:
       table.add_row(["public ip", None])
     else:
       table.add_row(["public ip", topo_info['management_data'][host]['ip']])

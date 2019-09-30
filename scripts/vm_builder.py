@@ -106,7 +106,7 @@ def validate_topology_name_view(name):
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
   print(name)
-  if name != "all" and name not in info.keys():
+  if name not in info.keys():
     parser.error("topology with name %s does not exist\n Check topology name"%(name)) 
   return name
 
@@ -837,7 +837,7 @@ if __name__ == '__main__':
   # create topology has mandatory file name as argument
   create_topology.add_argument("file_name", help = "path to the config file", type = lambda x: validate_file(x))
   # list global i.e., for all keys
-  show_topology.add_argument("topology_name", help = "name of the topology or \"all\" for global status ", type = lambda x: validate_topology_name_view(x))
+  show_topology.add_argument("topology_name", help = "name of the topology", type = lambda x: validate_topology_name_view(x))
   # destroy vm 
   delete_topology.add_argument("topology_name", help = "name of the topology to be destroyed",  type = lambda x: validate_topology_name_deletion(x))
   

@@ -1,0 +1,11 @@
+template : all_in_one
+name : aio1
+internal_network: True
+contrail_version: 1910-3
+#management_ip: {'ip' : '10.204.220.30', 'netmask':'255.255.25.192', 'gateway':'10.204.220.62'}
+#openstack_version: queens
+registry: nodei40
+contrail_command_ip: { 'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'}
+
+
+ 

@@ -48,9 +48,14 @@ def get_keys(prefix, num):
     list.append(prefix+str(i))
   return list
 
+@static_var("nodecount",1)
 def get_host_names(name, dict, list):
   for element in list:
-    dict[element] = str(name+'-'+element)
+    if 'switch' not in element:
+      dict[element] = str(name+'-node'+str(nodecount))
+      nodecount += 1
+    else:
+      dict[element] = str(name+'-'+element)
   return dict
 
 ############# validation functions
@@ -459,8 +464,6 @@ def three_node(inputs):
   kolla_ivip = kolla_ivip_dict['kolla-ivip']
 
   host_names = get_host_names(inputs['name'], {}, hosts)
-  if 'command' in hosts:
-    host_names['command'] = str(inputs['name']+"-node"+ str(len(host_names)-1))
   host_instance = []
   computes_controllers = []
   for node in hosts:
@@ -564,8 +567,6 @@ def three_node_vqfx(inputs):
   host_names = {}
   host_names = get_host_names(inputs['name'], host_names, hosts)
   host_names = get_host_names(inputs['name'], host_names, switches)
-  if 'command' in hosts:
-    host_names['command'] = str(inputs['name']+"-node"+ str(len(host_names)-1))
 
   switch_instance = []
   computes_controllers = []

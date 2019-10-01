@@ -1,6 +1,6 @@
 # Lab-in-a-server
 
-Lab-in-a-server is a tool to spin up virtual machines. The tool is a wrapper for Vagrant.
+This tool can be used to create pre-defined virtual topologies on a single server very easily. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant to provision the topologies with suitable contrail version. At the end, what the users get is a tool which make the life of developers and testers easy to creating and configuring contrail topologies very easy. This tool can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
 
 ## Installation
 
@@ -12,7 +12,7 @@ Lab-in-a-server is a tool to spin up virtual machines. The tool is a wrapper for
 
 ``` 
 ### 2. Run installer.sh 
-For setting up execution environment and first time installation
+
 
 ```
   cd lab-in-a-server
@@ -62,13 +62,13 @@ create_lab destroy <topology_name>
 4. Three node setup with VQFX
 
 ## Input Format
-Every configuration file given at the time of topology creation can have these fields specified
+Every configuration file given at the time of topology creation should have these fields specified
 
 #### 1. template : <template_name> (mandatory)
 Template name specifies the topology and it should be one among [ devenv, all_in_one, three_node_vqfx, three_node ] 
 
 #### 2. name : <name> (mandatory)
-Unique name given for a deployment
+Unique name given for a deployment. 
 
 #### 3. management_ip : <management_ip> (optional)
 List of public ip address to be assigned to the virtual machines.
@@ -141,7 +141,7 @@ The number of additional compute nodes to be provisioned. Zero by default.
 #### 3. dpdk_computes: <dpdk_computes> (optional)
 The number of dpdk computes to be provisioned. The default number is zero. The value for this field should always be <= additional_computes + 2.
 
-### Note: The total number of nodes that can be connected to VQFX box is limited to 5. Including node for contrail-command.
+### Note: The total number of nodes that can be connected to VQFX box is limited to 5. 
 ### 4. Three node setup
 The template spins up 1 controller node and 2 compute nodes.
 

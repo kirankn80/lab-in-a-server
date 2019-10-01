@@ -52,8 +52,8 @@ def get_keys(prefix, num):
 def get_host_names(name, dict, list):
   for element in list:
     if 'switch' not in element:
-      dict[element] = str(name+'-node'+str(nodecount))
-      nodecount += 1
+      dict[element] = str(name+'-node'+str(get_host_names.nodecount))
+      get_host_names.nodecount += 1
     else:
       dict[element] = str(name+'-'+element)
   return dict

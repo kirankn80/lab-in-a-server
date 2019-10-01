@@ -456,7 +456,7 @@ def three_node(inputs):
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
 
   kolla_ivip_dict, interface_dummy  = set_vboxnet_ips(['kolla-ivip'], {}, {})
-  kolla_ivip = kolla_evip_dict['kolla-ivip']
+  kolla_ivip = kolla_ivip_dict['kolla-ivip']
 
   host_names = get_host_names(inputs['name'], {}, hosts)
   if 'command' in hosts:

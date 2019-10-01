@@ -21,7 +21,7 @@ if [ ! -d "$MACHINE_DIR" ]; then
   echo "directory .machines created in home directory"
 fi
 
-if [ ! -f "$MACHINE_DIR/vminfo.json" ]; then
+if [ ! -f "$MACHINE_DIR/.machines/vminfo.json" ]; then
   cp "$VAGRANT_VM/scripts/vminfo.json" "$MACHINE_DIR/.machines/vminfo.json"
 fi
 

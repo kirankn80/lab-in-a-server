@@ -54,12 +54,18 @@ Deallocate the resources assigned to the virtual machines
 create_lab destroy <topology_name>
 ```
 
-## Topologies Supported
+## Topologies Supported Currently
 
 1. Dev-env
 2. All-in-one
 3. Three node setup 
 4. Three node setup with VQFX
+
+## Topologies which will be supported in future
+
+1. Fabric (CRB leaf + spine)
+2. Edge compute
+3. Multi-compute
 
 ## Input Format
 Every configuration file given at the time of topology creation should have these fields specified

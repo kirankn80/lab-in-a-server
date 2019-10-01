@@ -703,7 +703,7 @@ def all_in_one(inputs):
     contrail_version = None
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname,"Vagrantfile"))
-  insert_topo_info(inputs['template'], inputs['name'], ['node1', 'command'], {'node1': str(inputs['name']+"-node1"), 'command': str(inputs['name']+"-node2")}, management_ips = management_ip, vboxnet_ips = {}, ctrl_data_ips = vboxnet_ips, contrail_version=contrail_version)
+  insert_topo_info(inputs['template'], inputs['name'], ['node1', 'command'], {'node1': str(inputs['name']+"-node1"), 'command': str(inputs['name']+"-node2")}, management_ips = management_ip, vboxnet_ips = {}, ctrl_data_ips = vboxnet_ip, contrail_version=contrail_version)
   return dirname
 
 ##################### subparser functions

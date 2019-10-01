@@ -446,7 +446,7 @@ def three_node(inputs):
     kolla_evip = inputs['kolla_external_vip_address']['ip']
   else:
     kolla_evip_dict, interface_dummy  = set_vboxnet_ips(['kolla-evip'], {}, {})
-    kolla_evip = kolla_evip_dict['kolla_evip']
+    kolla_evip = kolla_evip_dict['kolla-evip']
 
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
@@ -456,7 +456,7 @@ def three_node(inputs):
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
 
   kolla_ivip_dict, interface_dummy  = set_vboxnet_ips(['kolla-ivip'], {}, {})
-  kolla_ivip = kolla_evip_dict['kolla_ivip']
+  kolla_ivip = kolla_evip_dict['kolla-ivip']
 
   host_names = get_host_names(inputs['name'], {}, hosts)
   if 'command' in hosts:
@@ -551,7 +551,7 @@ def three_node_vqfx(inputs):
     kolla_evip = inputs['kolla_external_vip_address']['ip']
   else:
     kolla_evip_dict, interface_dummy  = set_vboxnet_ips(['kolla-evip'], {}, {})
-    kolla_evip = kolla_evip_dict['kolla_evip']
+    kolla_evip = kolla_evip_dict['kolla-evip']
 
   # add contrail_command_to_hosts  
   if 'contrail_command_ip' in inputs.keys():

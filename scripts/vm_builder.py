@@ -480,10 +480,10 @@ def three_node(inputs):
     update_kernel(release,host_instance)
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
-    computes = host_instance[:inputs['additional_compute']]
-    computes_ip = computes_controllers[:inputs['additional_compute']]
-    controls = host_instance[inputs['additional_compute']:]
-    controls_ip = computes_controllers[inputs['additional_compute']:]
+    computes = host_instance[:(inputs['additional_compute']+2)]
+    computes_ip = computes_controllers[:(inputs['additional_compute']+2)]
+    controls = host_instance[(inputs['additional_compute']+2):]
+    controls_ip = computes_controllers[(inputs['additional_compute']+2):]
   # increase computes size
     for compute_node in computes:
       print(compute_node)
@@ -585,10 +585,10 @@ def three_node_vqfx(inputs):
     update_kernel(release,host_instance)
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
-    computes = host_instance[:inputs['additional_compute']]
-    computes_ip = computes_controllers[:inputs['additional_compute']]
-    controls = host_instance[inputs['additional_compute']:]
-    controls_ip = computes_controllers[inputs['additional_compute']:]
+    computes = host_instance[:(inputs['additional_compute']+2)]
+    computes_ip = computes_controllers[:(inputs['additional_compute']+2)]
+    controls = host_instance[(inputs['additional_compute']+2):]
+    controls_ip = computes_controllers[(inputs['additional_compute']+2):]
     # allocate more memory for computes
     for compute_node in computes:
       print(compute_node)

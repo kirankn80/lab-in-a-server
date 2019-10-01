@@ -22,7 +22,7 @@ This tool can be used to create pre-defined virtual topologies on a single serve
 
 ## Tool Usage
 
-### 1. Creating Virtual Machines
+### 1. Creating Topologies
 Configuration file should be given as the input for creating vms. The configuration file will have attributes specific to topologies.
 
 #### command
@@ -46,7 +46,7 @@ create_lab show <topology_name>
 <topology_name> is the unique name given at the time of creation.
 Displays all the resources assigned to the virtual machines in the topology.
 
-### 3. Destroying Virtual Machines
+### 3. Destroying Topologies
 Deallocate the resources assigned to the virtual machines
 
 #### command

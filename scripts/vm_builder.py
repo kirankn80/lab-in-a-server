@@ -488,7 +488,7 @@ def three_node(inputs):
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_ivip, 'kvrouter_id': "101", 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_ivip, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path,"scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
@@ -593,7 +593,7 @@ def three_node_vqfx(inputs):
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'kolla_ivip': kolla_ivip, 'kolla_evip': kolla_evip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'kvrouter_id': "101", 'computes': computes_ip, 'kolla_ivip': kolla_ivip, 'kolla_evip': kolla_evip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     

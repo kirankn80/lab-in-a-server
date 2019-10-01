@@ -204,7 +204,6 @@ class VQFX(Switch):
         ansible.playbook = \"/{}\"
         ansible.extra_vars = {{
           vagrant_root: \"{}\",
-          lab_in_a_server: "/root/lab-in-a-server",
           switch_name: \"{}\",
           interface_count: {},
           vlan_id: {},

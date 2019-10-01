@@ -422,6 +422,10 @@ def three_node(inputs):
     {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
     'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
     'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
+    Optional('kolla_external_vip_address'): 
+    {'ip' : And(str, lambda ip: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
+    'netmask' : And(str, lambda netmask: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)), 
+    'gateway' : And(str, lambda gateway: Regex('^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
     Optional('additional_compute') : int,
     Optional('additional_control'): int,
     Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
@@ -438,12 +442,22 @@ def three_node(inputs):
   interfaces = {}
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   # add contrail_command_to_hosts
+  if 'kolla_external_vip_address' in inputs.keys():
+    kolla_evip = inputs['kolla_external_vip_address']['ip']
+  else:
+    kolla_evip_dict, interface_dummy  = set_vboxnet_ips(['kolla-evip'], {}, {})
+    kolla_evip = kolla_evip_dict['kolla_evip']
+
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
     management_data['command'] = inputs['contrail_command_ip']
 
   # control_data_ip is hostonly ip
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
+
+  kolla_ivip_dict, interface_dummy  = set_vboxnet_ips(['kolla-ivip'], {}, {})
+  kolla_ivip = kolla_evip_dict['kolla_ivip']
+
   host_names = get_host_names(inputs['name'], {}, hosts)
   if 'command' in hosts:
     host_names['command'] = str(inputs['name']+"-node"+ str(len(host_names)-1))
@@ -471,7 +485,7 @@ def three_node(inputs):
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_ivip, 'kvrouter_id': "101", 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path,"scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
@@ -532,12 +546,20 @@ def three_node_vqfx(inputs):
   interfaces = {}
   # setting up interfaces
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
-  # add contrail_command_to_hosts
+  
+  if 'kolla_external_vip_address' in inputs.keys():
+    kolla_evip = inputs['kolla_external_vip_address']['ip']
+  else:
+    kolla_evip_dict, interface_dummy  = set_vboxnet_ips(['kolla-evip'], {}, {})
+    kolla_evip = kolla_evip_dict['kolla_evip']
+
+  # add contrail_command_to_hosts  
   if 'contrail_command_ip' in inputs.keys():
     hosts.append('command')
     management_data['command'] = inputs['contrail_command_ip']
 
   ctrl_data_ip, gateway, interfaces = set_up_switch_host_interfaces(interfaces, hosts, switches[0])
+  kolla_ivip = str(gateway.rsplit(".",1)[0] + "." + str(len(ctrl_data_ip)+2))
   # setting up dummy hostname //?? required??
   host_names = {}
   host_names = get_host_names(inputs['name'], host_names, hosts)
@@ -570,7 +592,7 @@ def three_node_vqfx(inputs):
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = "large"
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'kolla_ivip': kolla_ivip, 'kolla_evip': kolla_evip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir,inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""},{'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     

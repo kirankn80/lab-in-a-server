@@ -16,7 +16,7 @@ if [ -z "$MACHINE_DIR" ] ; then
 fi
 echo "$MACHINE_DIR"
 
-if [ ! -d "$MACHINE_DIR" ]; then
+if [ ! -d "$MACHINE_DIR/.machines" ]; then
   mkdir "$MACHINE_DIR/.machines"
   echo "directory .machines created in home directory"
 fi

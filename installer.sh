@@ -1,7 +1,8 @@
 #!/bin/bash
 export LC_ALL=C
 
-pip3 install requests colorama schema pyyaml argparse enum 
+sudo apt-get install python3-pip
+pip3 install requests colorama schema pyyaml argparse prettytable enum 
 
 VAGRANT_VM="`dirname \"$0\"`"              
 VAGRANT_VM="`( cd \"$VAGRANT_VM\" && pwd )`"  

@@ -1,7 +1,7 @@
 #!/bin/bash
 export LC_ALL=C
 
-pip3 install requests colorama schema pyyaml json argparse re abc enum 
+pip3 install requests colorama schema pyyaml argparse enum 
 
 VAGRANT_VM="`dirname \"$0\"`"              
 VAGRANT_VM="`( cd \"$VAGRANT_VM\" && pwd )`"  

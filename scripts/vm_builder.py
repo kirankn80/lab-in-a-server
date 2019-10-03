@@ -104,16 +104,15 @@ def validate_topology_name_deletion(name):
     parser.error("topology with name %s does not exist\n Check topology name"%(name)) 
   return name
 
-def validate_topology_name_view(name):
+'''def validate_topology_name_view(name):
   if not os.path.exists(info_file):
     print(Fore.RED + "Note: " + Fore.WHITE + "info file not found in path")
     parser.error("File %s not found in the path"%(info_file))
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
-  print(name)
   if name not in info.keys():
     parser.error("topology with name %s does not exist\n Check topology name"%(name)) 
-  return name
+  return name'''
 
 def parse_input_file(file_name):
   valid_templates = ['devenv', 'all_in_one', 'three_node_vqfx', 'three_node']
@@ -820,6 +819,35 @@ def destroy(args):
   destroy_workspace(dirname)
   return
 
+def retry(args):
+  vagrant_provision_command = ["vagrant", "provision"]
+  topology_name = args.topology_name
+  with open(info_file, "r") as info_file_handler:
+    info = json.load(info_file_handler)
+  topo_info = info[topology_name]
+  dirname = topo_info['dirname']
+  try:
+    os.chdir(dirname)
+  except Exception as e:
+    print(e)
+    print("cannot change directory to %s"%dirname)
+    raise(e)
+    sys.exit()
+  else:
+    print(os.getcwd())
+    if not os.path.exists(os.path.join(os.getcwd(), "Vagrantfile")):
+      print("Vagrantfile does not exist in directory %s"%os.getcwd()) 
+      sys.exit()
+    try:
+      op = subprocess.run(vagrant_provision_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+      raise e
+      print("Could not run vagrant provision command")
+      sys.exit()
+    else:
+      vagrant_up(dirname = dirname)
+
+
 def vagrant_up(dirname = "", topology_name = ""):
   vagrant_up_command = ["vagrant", "up"]
   if not dirname and not topology_name:
@@ -857,14 +885,17 @@ if __name__ == '__main__':
   global parser
   parser = argparse.ArgumentParser()
   subparser = parser.add_subparsers(dest = 'command')
-  create_topology = subparser.add_parser("create", help = "create vagrant file")
+  create_topology = subparser.add_parser("create", help = "create vagrant file and bring up topology")
+  retry_topology = subparser.add_parser("retry", help = "retry building topology")
   list_topology = subparser.add_parser("list", help = "list topology details")
   show_topology = subparser.add_parser("show", help = "show individual topology details")
   delete_topology = subparser.add_parser("destroy", help = "delete topology")
   # create topology has mandatory file name as argument
   create_topology.add_argument("file_name", help = "path to the config file", type = lambda x: validate_file(x))
+
+  retry_topology.add_argument("topology_name", help = "name of the topology to be rebuilt", type = lambda x: validate_topology_name_deletion(x))
   # list global i.e., for all keys
-  show_topology.add_argument("topology_name", help = "name of the topology", type = lambda x: validate_topology_name_view(x))
+  show_topology.add_argument("topology_name", help = "name of the topology", type = lambda x: validate_topology_name_deletion(x))
   # destroy vm 
   delete_topology.add_argument("topology_name", help = "name of the topology to be destroyed",  type = lambda x: validate_topology_name_deletion(x))
   

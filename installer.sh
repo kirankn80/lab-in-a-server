@@ -1,8 +1,4 @@
-#!/bin/bash
-export LC_ALL=C
-
-sudo apt-get install python3-pip
-pip3 install requests colorama schema pyyaml argparse prettytable enum 
+#!/bin/bash -v
 
 VAGRANT_VM="`dirname \"$0\"`"              
 VAGRANT_VM="`( cd \"$VAGRANT_VM\" && pwd )`"  
@@ -10,6 +6,67 @@ if [ -z "$VAGRANT_VM" ] ; then
   exit 1  
 fi
 echo "$VAGRANT_VM"
+
+apt-get update
+apt-get install -y wget git bridge-utils python python-pip tmux apt-transport-https software-properties-common
+
+# VirtualBox Installation
+# Add following line in "/etc/apt/sources.list"
+if [ `which virtualbox | wc -l` -eq  "0" ]; then
+wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
+wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
+sudo add-apt-repository "deb http://download.virtualbox.org/virtualbox/debian `lsb_release -cs` contrib"
+sudo apt-get update
+sudo apt-get -y install virtualbox-5.2
+fi
+
+### Vagrant install
+# wget https://releases.hashicorp.com/vagrant/2.1.1/vagrant_2.1.1_x86_64.deb
+if [ `which vagrant | wc -l` -eq  "0" ]; then
+wget https://releases.hashicorp.com/vagrant/2.2.0/vagrant_2.2.0_x86_64.deb
+dpkg -i vagrant_2.2.0_x86_64.deb
+fi
+
+## Ansible Install
+sudo apt-get update
+sudo apt-add-repository ppa:ansible/ansible
+sudo apt-get update
+sudo apt-get -y install ansible
+ansible-galaxy install Juniper.junos
+
+## Install JunOS Ansible Module and Python Modules
+sudo ansible-galaxy install Juniper.junos
+
+pip install --upgrade pip
+sudo apt-get update
+pip install jxmlease
+pip install junos-eznc
+
+## vQFX Box Addition
+
+cd /var/tmp
+if [ `vagrant box list | grep juniper/vqfx10k-pfe | wc -l` -eq "0" ]; then
+wget http://10.204.217.158/images/kirankn/vqfx10k-pfe-virtualbox.box
+vagrant box add --name juniper/vqfx10k-pfe /var/tmp/vqfx10k-pfe-virtualbox.box
+fi
+
+if [ `vagrant box list | grep juniper/vqfx10k-re | wc -l` -eq "0" ]; then
+wget http://10.204.217.158/images/kirankn/vqfx-re-virtualbox.box
+vagrant box add --name juniper/vqfx10k-re /var/tmp/vqfx-re-virtualbox.box
+fi
+
+# Download and Addd CentOS-7.5 Box
+if [ `vagrant box list | grep kirankn/centOS-7.5 | wc -l` -eq "0" ]; then
+vagrant box add kirankn/centOS-7.5
+fi
+
+echo "List Box"
+vagrant box list
+
+export LC_ALL=C
+
+sudo apt-get install -y python3-pip
+pip3 install requests colorama schema pyyaml argparse prettytable
 
 MACHINE_DIR="`(cd ~ && pwd)`"
 if [ -z "$MACHINE_DIR" ] ; then
@@ -36,3 +93,5 @@ sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr
 sudo sed -i 's@LAB_IN_A_SERVER_INFO_FILE@'$MACHINE_DIR'/.machines/vminfo.json@' /usr/bin/create_lab
 
 sudo chmod 777 /usr/bin/create_lab
+
+

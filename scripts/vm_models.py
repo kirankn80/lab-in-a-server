@@ -201,7 +201,7 @@ class VQFX(Switch):
     # configuring logical connection 
     config = config + """
       VAR_PLACEHOLDER.vm.provision :ansible do |ansible|
-        ansible.playbook = \"/{}\"
+        ansible.playbook = \"{}\"
         ansible.extra_vars = {{
           vagrant_root: \"{}\",
           switch_name: \"{}\",

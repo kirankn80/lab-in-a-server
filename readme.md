@@ -85,6 +85,7 @@ List of public ip address to be assigned to the virtual machines.
 When True, assigns private ip address accessible from host machine, as management ip. It is "FALSE" by default.
 
 ### 1. Dev-env
+![devenv setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/devenv.png)
 
 input file - [dev_env.yml](https://github.com/kirankn80/lab-in-a-server/blob/version1/sample-input/dev_env.yml)
 ```
@@ -98,6 +99,7 @@ management_ip: { 'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': 
 The branch which is checked out for creating dev-env from [contrail-dev-env](https://github.com/Juniper/contrail-dev-env.git) repository.
 
 ### 2. All-in-one
+![aio setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/aio.png)
 
 input file - [aio.yml](https://github.com/kirankn80/lab-in-a-server/blob/version1/sample-input/aio.yml)
 ```
@@ -125,6 +127,8 @@ If this field is specified, then contrail-command is installed.
 ### 3. Three node with VQFX
 The template spins up 1 controller node and 2 compute nodes connected to VQFX box.
 
+![three node with vqfx setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/tnv.png)
+
 input file - [three_node_vqfx.yml](https://github.com/kirankn80/lab-in-a-server/blob/version1/sample-input/three_node_vqfx.yml)
 ```
 template : 'three_node_vqfx'
@@ -150,6 +154,8 @@ The number of dpdk computes to be provisioned. The default number is zero. The v
 ### Note: The total number of nodes that can be connected to VQFX box is limited to 5. 
 ### 4. Three node setup
 The template spins up 1 controller node and 2 compute nodes.
+
+![three node setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/three-node.png)
 
 input file - [three_node.yml](https://github.com/kirankn80/lab-in-a-server/blob/version1/sample-input/three_node.yml)
 ```

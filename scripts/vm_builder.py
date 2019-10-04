@@ -769,7 +769,8 @@ def show(args):
       table = PrettyTable()
       table.title = "SWITCH"
       table.field_names = ['Fields', 'Values']
-      table.add_row(["hostname", topo_info['hostnames'][switch]])
+      table.add_row(["RE name", str(topo_info['hostnames'][switch] + "_re")])
+      table.add_row(["PFE name", str(topo_info['hostnames'][switch] + "_pfe")])
       table.align["Fields"] = "l"
       table.align["Values"] = "l"
       print(table)

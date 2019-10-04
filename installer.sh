@@ -1,5 +1,7 @@
 #!/bin/bash -v
 
+export LC_ALL=C
+
 VAGRANT_VM="`dirname \"$0\"`"              
 VAGRANT_VM="`( cd \"$VAGRANT_VM\" && pwd )`"  
 if [ -z "$VAGRANT_VM" ] ; then
@@ -63,10 +65,8 @@ fi
 echo "List Box"
 vagrant box list
 
-export LC_ALL=C
-
 sudo apt-get install -y python3-pip
-pip3 install requests colorama schema pyyaml argparse prettytable
+pip3 install requests colorama schema pyyaml argparse prettytable pTable
 
 MACHINE_DIR="`(cd ~ && pwd)`"
 if [ -z "$MACHINE_DIR" ] ; then

@@ -119,6 +119,8 @@ class CENTOS(Server):
     return super().set_initialconfig("", self.box)
 
   def set_managementip(self, config):
+    config = config + """
+    srv.vm.provision \"shell\", path: \"%s\""""%(os.path.join(ansible_scripts_path, 'scripts/set-centos-gw.sh'))
     if self.management_ip:
       config = config + """
       srv.vm.network \"public_network\", auto_config: false, bridge: \'eno1\'

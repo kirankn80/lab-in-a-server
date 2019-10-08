@@ -126,7 +126,7 @@ def validate_flavour(flavour):
   return False
 
 def validate_tnv_additional_nodes(inputs, n):
-  if inputs['contrail_command'] and 'contrail_version' in inputs.keys():
+  if 'contrail_command' in inputs.keys() and inputs['contrail_command'] and 'contrail_version' in inputs.keys():
     if n < 2:
       return True
   else:

@@ -70,7 +70,7 @@ def validate_managementip(ip_address):
   if op.stderr:
     print(Fore.RED + "Note:" + Fore.WHITE + "IP address error")
     return False
-  packet_loss = re.findall(r"(\d{1,3}.\d)% packet loss", op.stdout.decode("UTF-8"))
+  packet_loss = re.findall(r"(\d{1,3}\.*\d|\d)% packet loss", op.stdout.decode("UTF-8"))
   if float(packet_loss[0]) == 100.0:
     return True
   print(Fore.RED + "Note:" + Fore.WHITE + "Ip address is reachable")

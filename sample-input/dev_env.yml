@@ -1,5 +1,7 @@
-template : 'devenv'
-name : dev
+template: 'devenv'
+name: dev
 internal_network: True
 branch: R1910
-#management_ip: { 'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'}
+management_ip: 10.204.220.30
+netmask: 255.255.255.192
+gateway: 10.204.220.62

@@ -3,12 +3,14 @@ name : tn-f1
 additional_compute: 1
 additional_control: 1
 dpdk_computes: 1
-#management_ip: [{'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'},{'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'},{'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'},{'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'},{'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'}]
+#management_ip: ['10.204.220.31', '10.204.220.32', '10.204.220.33', '10.204.220.30', '10.204.220.34', '10.204.220.35']
+#netmask: 255.255.255.192
+#gateway: 10.204.220.62
 internal_network: True
 contrail_version: 1910-3
 openstack_version: queens
 registry: nodei40
-contrail_command_ip: {'ip' : '10.204.220.30', 'netmask':'255.255.255.192','gateway': '10.204.220.62'}
+contrail_command: True
 
 
  

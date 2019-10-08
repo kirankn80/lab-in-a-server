@@ -692,6 +692,7 @@ def all_in_one(inputs):
       host_instance.append(vm.CENTOS(name=host_names[node], flavour="large", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
   
   if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
     if inputs['contrail_command']:
       if management_data['node1'] and management_data['command']:
         vm_ip = management_data['node1']['ip']

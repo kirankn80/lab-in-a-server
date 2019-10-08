@@ -56,6 +56,7 @@ create_lab destroy <topology_name>
 ### 4. Rebuild Topologies
 Retry building entire topology with same resources in case of failure.
 
+#### command
 ```
 create_lab rebuild <topology_name>
 ```

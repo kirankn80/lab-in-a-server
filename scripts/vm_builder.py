@@ -68,12 +68,12 @@ def validate_managementip(ip_address):
   ping_test.append(ip_address)
   op = subprocess.run(ping_test, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   if op.stderr:
-    print("Unknown host")
+    print(Fore.RED + "Note:" + Fore.WHITE + "IP address error")
     return False
   packet_loss = re.findall(r"(\d{1,3}.\d)% packet loss", op.stdout.decode("UTF-8"))
   if float(packet_loss[0]) == 100.0:
     return True
-  print("Ip address is reachable")
+  print(Fore.RED + "Note:" + Fore.WHITE + "Ip address is reachable")
   return False
 
 # function validating the existance of file
@@ -126,7 +126,7 @@ def validate_flavour(flavour):
   return False
 
 def validate_tnv_additional_nodes(inputs, n):
-  if 'contrail_command_ip' in inputs.keys() and 'contrail_version' in inputs.keys():
+  if inputs['contrail_command'] and 'contrail_version' in inputs.keys():
     if n < 2:
       return True
   else:
@@ -191,14 +191,29 @@ def validate_deployer_branch(input_branch):
 #########################set defaults
 
 def set_defaults(inputs):
+
+  if 'management_ip' in inputs.keys() and ('netmask' not in inputs.keys() or 'gateway' not in inputs.keys()):
+    print(Fore.RED + "Please specify netmask and gateway fields" + Fore.WHITE + "")
+    sys.exit()
+
   if 'internal_network' not in inputs.keys():
     inputs['internal_network'] = False
 
   if 'management_ip' not in inputs.keys():
     inputs['management_ip'] = []
 
-  if 'management_ip' in inputs.keys() and type(inputs['management_ip']) is dict:
+  if 'management_ip' in inputs.keys() and type(inputs['management_ip']) is str:
     inputs['management_ip'] = [inputs['management_ip']]
+  
+  management_ips = []
+  for ip in inputs['management_ip']:
+    management_ip_dict = {}
+    management_ip_dict['ip'] = ip
+    management_ip_dict['netmask'] = inputs['netmask']
+    management_ip_dict['gateway'] = inputs['gateway']
+    management_ips.append(management_ip_dict)
+  
+  inputs['management_ip'] = management_ips
 
   if 'flavour' not in inputs.keys():
     inputs['flavour'] = "large"
@@ -208,6 +223,9 @@ def set_defaults(inputs):
 
   if 'registry' not in inputs.keys():
     inputs['registry'] = "cirepo"
+
+  if 'contrail_command' not in inputs.keys():
+    inputs['contrail_command'] = False
 
 def set_defaults_three_node(inputs):
 
@@ -224,7 +242,7 @@ def set_defaults_three_node(inputs):
 
 def update_kernel(release, host_instance):
   try:
-    if release == "master" or float(release) > 1909:
+    if release == "master" or float(release) > 1909 or release == "undefined":
       for node in host_instance:
         node.provision = [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, "kernel_upgrade.yml")), 'variables': {}}] + node.provision
   except ValueError:
@@ -304,6 +322,9 @@ def get_vboxnet_ip():
 
 # assign one management ip to each host and {} when given number of management ip is less
 def set_management_ips(hosts, management_ip_input, interfaces={}, vboxnet_ips={}, internalnet=0):
+  for node in hosts:
+    if node not in interfaces.keys():
+      interfaces[node] = []
   management_ip = {}
   for node in range(0, min(len(management_ip_input), len(hosts))):
     management_ip[hosts[node]] = management_ip_input[node]
@@ -417,20 +438,13 @@ def three_node(inputs):
 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     'additional_nodes': And(int, int),
-    Optional('management_ip') : 
-    [{'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))}],
+    Optional('management_ip') : And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))), 
+    Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
+    Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
     Optional('contrail_version'): str,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)), 
-    Optional('contrail_command_ip'):
-    {'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
-    Optional('kolla_external_vip_address'):
-    {'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
+    Optional('contrail_command'): bool,
+    Optional('kolla_external_vip_address'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))),
     Optional('additional_compute') : int,
     Optional('additional_control'): int,
     Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
@@ -445,6 +459,9 @@ def three_node(inputs):
   nodes_count = nodes_count + inputs['additional_nodes']
   hosts = get_keys('node', nodes_count)
   interfaces = {}
+  if 'contrail_command':
+    hosts.append('command')
+  
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   # add contrail_command_to_hosts
   if 'kolla_external_vip_address' in inputs.keys():
@@ -452,10 +469,6 @@ def three_node(inputs):
   else:
     kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {})
     kolla_evip = kolla_evip_dict['kolla-evip']
-
-  if 'contrail_command_ip' in inputs.keys():
-    hosts.append('command')
-    management_data['command'] = inputs['contrail_command_ip']
 
   # control_data_ip is hostonly ip
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
@@ -492,13 +505,11 @@ def three_node(inputs):
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
-    if 'contrail_command_ip' in inputs.keys():
-      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
-  
+    if 'contrail_command':
+      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour="medium", management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
   else:
     contrail_version = inputs['contrail_version']
-    if 'command' in hosts:
-      del host_names['command']
+    update_kernel("undefined", host_instance)
 
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname, "Vagrantfile"))
@@ -514,21 +525,14 @@ def three_node_vqfx(inputs):
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     'additional_nodes': And(int, lambda n: validate_tnv_additional_nodes(inputs, n)),
     Optional('dpdk_computes'): And(int, lambda n: validate_tnv_dpdk_computes(inputs, n)),
-    Optional('management_ip'):
-    [{'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))}],
+    Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))),
+    Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
+    Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
     Optional('contrail_version'): str,
     Optional('internal_network'): bool,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
-    Optional('kolla_external_vip_address'):
-    {'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
-    Optional('contrail_command_ip'):
-    {'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
+    Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip)),
+    Optional('contrail_command'): bool,
     Optional('template') : str,
     Optional('registry') : And(str, lambda repo: validate_registry(repo)),
     Optional('additional_compute') : int,
@@ -552,18 +556,18 @@ def three_node_vqfx(inputs):
   # setting management ips if given for nodes and setting up vboxnet interface if there is less management ips
   interfaces = {}
   # setting up interfaces
+  if 'contrail_command':
+    hosts.append('command')
+
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   
   if 'kolla_external_vip_address' in inputs.keys():
-    kolla_evip = inputs['kolla_external_vip_address']['ip']
+    kolla_evip = inputs['kolla_external_vip_address']
   else:
     kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {})
     kolla_evip = kolla_evip_dict['kolla-evip']
 
   # add contrail_command_to_hosts  
-  if 'contrail_command_ip' in inputs.keys():
-    hosts.append('command')
-    management_data['command'] = inputs['contrail_command_ip']
 
   ctrl_data_ip, gateway, interfaces = set_up_switch_host_interfaces(interfaces, hosts, switches[0])
   kolla_ivip = str(gateway.rsplit(".", 1)[0] + "." + str(len(ctrl_data_ip)+2))
@@ -601,11 +605,12 @@ def three_node_vqfx(inputs):
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     
-    if 'contrail_command_ip' in inputs.keys():
-      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
+    if 'contrail_command':
+      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour="medium", management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
   
   else:
     contrail_version = None
+    update_kernel("undefined", host_instance)
 
   for switch in switches:
     switch_instance.append(vm.VQFX(host_names[switch], gateway, interfaces[switch]))
@@ -621,10 +626,9 @@ def devenv(inputs):
   # validate schema
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     'branch' : And(str, lambda value: validate_devenv_branch(value)),
-    Optional('management_ip') :
-    {'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
+    Optional('management_ip') : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
+    Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
+    Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
     Optional('internal_network') : bool,
     Optional('template') : str}).validate(inputs)
   
@@ -635,7 +639,7 @@ def devenv(inputs):
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   print(management_ip, interfaces)
-  s1 = vm.CENTOS(str(inputs['name']+"-node1"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
+  s1 = vm.CENTOS(str(inputs['name']+"-node1"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, "kernel_upgrade.yml")), 'variables': {}}, {'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
   # no switches one server
 
   dirname = create_workspace(inputs['name'])
@@ -649,17 +653,13 @@ def all_in_one(inputs):
     inputs['dpdk_compute'] = False
 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
-    Optional('management_ip') :
-    {'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
+    Optional('management_ip') : And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))),
+    Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
+    Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
     Optional('contrail_version'): str,
     Optional('internal_network') : bool,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
-    Optional('contrail_command_ip'):
-    {'ip' : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)), 
-    'netmask' : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    'gateway' : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway))},
+    Optional('contrail_command'): bool,
     Optional('template') : str,
     Optional('dpdk_compute') : bool,
     Optional('registry') : And(str, lambda repo: validate_registry(repo)),
@@ -668,6 +668,15 @@ def all_in_one(inputs):
 
   set_defaults(inputs)
 
+  hosts = []
+  host_names = {}
+  hosts = get_keys('node', 1)
+
+  if inputs['contrail_command']:
+    hosts.append('command')
+
+  host_names = get_host_names(inputs['name'], host_names, hosts)
+
   host_instance = []
   # provisioning for contrail role
   #vm_ip : inputs['management_ip']['ip']
@@ -675,25 +684,30 @@ def all_in_one(inputs):
   #contrail_version :
   #vagrant_root :
   interfaces = {}
-  interfaces['node1'] = []
-  management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
-  host_instance.append(vm.CENTOS(str(inputs['name']+"-node1"), inputs['flavour'], management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}]))
+  management_data, vboxnet_ip, interfaces = set_management_ips(hosts, inputs['management_ip'], interfaces, {}, inputs['internal_network'])
+  ctrl_data_ip = {}
+
+  for node in hosts:
+    if node is not 'command':
+      host_instance.append(vm.CENTOS(name=host_names[node], flavour="large", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
+  
   if 'contrail_version' in inputs.keys():
-    contrail_version = inputs['contrail_version']
-    if inputs['management_ip'] != []:
-      vm_ip = management_ip['node1']['ip']
-      if 'contrail_command_ip' in inputs.keys():
-        command_vm_ip = inputs['contrail_command_ip']['ip']
-        management_ip['command'] = inputs['contrail_command_ip']
-    elif vboxnet_ip != {}:
-      vm_ip = vboxnet_ip['node1']
-      if 'contrail_command_ip' in inputs.keys():
-        vboxnet_ip, interfaces = set_vboxnet_ips(['command'], interfaces, vboxnet_ip)
+    if inputs['contrail_command']:
+      if management_data['node1'] and management_data['command']:
+        vm_ip = management_ip['node1']['ip']
+        command_vm_ip = management_ip['command']['ip']
+      elif not management_data['node1'] and not management_data['command']:
+        vm_ip = vboxnet_ip['node1']
         command_vm_ip = vboxnet_ip['command']
-        management_ip['command'] = inputs['contrail_command_ip']
+      else:
+        ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
+        vm_ip = ctrl_data_ip['node1']
+        command_vm_ip = ctrl_data_ip['command']
     else:
-      print("cannot install contrail without ip\n")
-      sys.exit()
+      if management_ip != {}:
+        vm_ip = management_ip['node1']['ip'] 
+      if vboxnet_ip != {}:
+        vm_ip = vboxnet_ip['node1']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     else:
@@ -701,13 +715,14 @@ def all_in_one(inputs):
     update_kernel(release, host_instance)
     host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
-    if 'contrail_command_ip' in inputs.keys():
-      host_instance.append(get_contrail_command(inputs, name=str(inputs['name']+"-node2"),flavour="medium", management_ip=inputs['contrail_command_ip'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
+    if 'contrail_command':
+      host_instance.append(get_contrail_command(inputs, name=host_names['command'], flavour="medium", management_ip=inputs['command'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
   else:
     contrail_version = None
+    update_kernel("undefined", host_instance)
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname, "Vagrantfile"))
-  insert_topo_info(inputs['template'], inputs['name'], ['node1', 'command'], {'node1': str(inputs['name']+"-node1"), 'command': str(inputs['name']+"-node2")}, management_ips=management_ip, vboxnet_ips={}, ctrl_data_ips=vboxnet_ip, contrail_version=contrail_version)
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
   return dirname
 
 ##################### subparser functions
@@ -730,6 +745,23 @@ def show(args):
   if not os.path.exists(instances_file_path):
     print(Fore.RED + "Note:" + Fore.WHITE + "instances file does not exist")
     instances_file_path = "DOES NOT EXIST"
+  if instances_file_path != "DOES NOT EXIST":
+    contrail_info = yaml.load(open(instances_file_path, "r"), Loader=yaml.FullLoader)
+    table = PrettyTable()
+    table.title = "Contrail Info"
+    table.field_names = ['Fields', 'Values']
+    table.add_row(["Contrail Version", contrail_info['contrail_configuration']['CONTRAIL_VERSION']])
+    table.add_row(["Cloud Orchestrator", contrail_info['contrail_configuration']['CLOUD_ORCHESTRATOR']])
+    if 'kolla_internal_vip_address' in contrail_info['kolla_config']['kolla_globals'].keys():
+      table.add_row(["kolla_internal_vip_address", contrail_info['kolla_config']['kolla_globals']['kolla_internal_vip_address']])
+    if 'kolla_external_vip_address' in contrail_info['kolla_config']['kolla_globals'].keys():
+      table.add_row(["kolla_external_vip_address", contrail_info['kolla_config']['kolla_globals']['kolla_external_vip_address']])
+    if 'contrail_api_interface_address' in contrail_info['kolla_config']['kolla_globals'].keys():
+      table.add_row(["contrail_api_interface_address", contrail_info['kolla_config']['kolla_globals']['contrail_api_interface_address']])
+    table.align["Fields"] = "l"
+    table.align["Values"] = "l"
+    print(table)
+    print("\n")
   for host in topo_info['hosts']:
     table = PrettyTable()
     table.title = "NODE"
@@ -775,23 +807,6 @@ def show(args):
       table.align["Values"] = "l"
       print(table)
       print("\n")
-  if instances_file_path != "DOES NOT EXIST":
-    contrail_info = yaml.load(open(instances_file_path, "r"), Loader=yaml.FullLoader)
-    table = PrettyTable()
-    table.title = "Contrail Info"
-    table.field_names = ['Fields', 'Values']
-    table.add_row(["Contrail Version", contrail_info['contrail_configuration']['CONTRAIL_VERSION']])
-    table.add_row(["Cloud Orchestrator", contrail_info['contrail_configuration']['CLOUD_ORCHESTRATOR']])
-    if 'kolla_internal_vip_address' in contrail_info['kolla_config']['kolla_globals'].keys():
-      table.add_row(["kolla_internal_vip_address", contrail_info['kolla_config']['kolla_globals']['kolla_internal_vip_address']])
-    if 'kolla_external_vip_address' in contrail_info['kolla_config']['kolla_globals'].keys():
-      table.add_row(["kolla_external_vip_address", contrail_info['kolla_config']['kolla_globals']['kolla_external_vip_address']])
-    if 'contrail_api_interface_address' in contrail_info['kolla_config']['kolla_globals'].keys():
-      table.add_row(["contrail_api_interface_address", contrail_info['kolla_config']['kolla_globals']['contrail_api_interface_address']])
-    table.align["Fields"] = "l"
-    table.align["Values"] = "l"
-    print(table)
-    print("\n")
 
 def list_vm(args):
   if not os.path.exists(info_file):

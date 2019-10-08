@@ -40,11 +40,19 @@ create_lab list
 ```
 Lists all the topologies hosted on the machine, the templates and the working directory associated with them.
 
+#### output
+![create_lab list output](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/list_topology.png)
+
 ```
 create_lab show <topology_name> 
 ```
 <topology_name> is the unique name given at the time of creation.
 Displays all the resources assigned to the virtual machines in the topology.
+
+#### output
+![contrail info](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/show_topology_contrail.png)
+
+![sample node info](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/show_topology.png)
 
 ### 3. Destroying Topologies
 Deallocate the resources assigned to the virtual machines
@@ -56,7 +64,6 @@ create_lab destroy <topology_name>
 ### 4. Rebuild Topologies
 Retry building entire topology with same resources in case of failure.
 
-#### command
 ```
 create_lab rebuild <topology_name>
 ```

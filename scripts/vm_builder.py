@@ -459,7 +459,7 @@ def three_node(inputs):
   nodes_count = nodes_count + inputs['additional_nodes']
   hosts = get_keys('node', nodes_count)
   interfaces = {}
-  if 'contrail_command':
+  if inputs['contrail_command']:
     hosts.append('command')
   
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
@@ -505,7 +505,7 @@ def three_node(inputs):
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
-    if 'contrail_command':
+    if inputs['contrail_command']:
       host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour="medium", management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
   else:
     contrail_version = inputs['contrail_version']
@@ -556,7 +556,7 @@ def three_node_vqfx(inputs):
   # setting management ips if given for nodes and setting up vboxnet interface if there is less management ips
   interfaces = {}
   # setting up interfaces
-  if 'contrail_command':
+  if inputs['contrail_command']:
     hosts.append('command')
 
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
@@ -605,7 +605,7 @@ def three_node_vqfx(inputs):
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     
-    if 'contrail_command':
+    if inputs['contrail_command']:
       host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour="medium", management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
   
   else:
@@ -715,7 +715,7 @@ def all_in_one(inputs):
     update_kernel(release, host_instance)
     host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
-    if 'contrail_command':
+    if inputs['contrail_command']:
       host_instance.append(get_contrail_command(inputs, name=host_names['command'], flavour="medium", management_ip=inputs['command'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
   else:
     contrail_version = None

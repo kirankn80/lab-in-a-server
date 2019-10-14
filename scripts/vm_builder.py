@@ -240,13 +240,15 @@ def set_defaults_three_node(inputs):
   if 'dpdk_computes' not in inputs.keys():
     inputs['dpdk_computes'] = 0
 
-def update_kernel(release, host_instance):
+def get_centos_image(release):
   try:
     if release == "master" or float(release) > 1909 or release == "undefined":
-      for node in host_instance:
-        node.provision = [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, "kernel_upgrade.yml")), 'variables': {}}] + node.provision
+      image = vm.CENTOS77
   except ValueError:
-    pass
+    image = vm.CENTOS77
+  else:
+    image = vm.CENTOS75
+return image
 
 ################## api functions
 
@@ -299,15 +301,15 @@ def get_vboxnet_ip():
       op = subprocess.run(vbox_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       print(op.stdout.decode("UTF-8"))
       print(op.stderr.decode("UTF-8"))
-      print("try block")
+      #print("try block")
     except subprocess.CalledProcessError as e:
       raise e
       print("except block")
       sys.exit()
     else:
-      print("else block")
-      print(op.stdout.decode("UTF-8"), "\n\n\n")
-      print(op.stderr.decode("UTF-8"), "\n\n\n")
+      #print("else block")
+      #print(op.stdout.decode("UTF-8"), "\n\n\n")
+      #print(op.stderr.decode("UTF-8"), "\n\n\n")
       existing_vboxnet_tuples = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{1,100}IPAddress:\s+([\d{1,3}\.]+)', op.stdout.decode("UTF-8"))
       vboxnet_ips = []
       for vbnet in existing_vboxnet_tuples:
@@ -425,7 +427,7 @@ def destroy_workspace(dirname):
 ############### topology creation and provisioning
 
 def get_contrail_command(inputs, name, flavour, management_ip, interfaces, vm_ip):
-  x = vm.CENTOS(name, flavour, management_ip, interfaces, [\
+  x = vm.CENTOS77(name, flavour, management_ip, interfaces, [\
       {'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'ui.yml')), 'variables': {'vm_ip': vm_ip, 'contrail_version': inputs['contrail_version'], 'ntp_server': 'ntp.juniper.net', 'registry': inputs['registry'], 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}}, \
       {'method': 'shell', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'scripts/docker.sh'))},
       {'method': 'file', 'source': "\"%s\""%(os.path.join(ansible_scripts_path, 'scripts/cc.sh')), 'destination': "\"/tmp/cc.sh\""},
@@ -479,18 +481,21 @@ def three_node(inputs):
   host_names = get_host_names(inputs['name'], {}, hosts)
   host_instance = []
   computes_controllers = []
-  for node in hosts:
-    if node is not 'command':
-      host_instance.append(vm.CENTOS(host_names[node], "medium", management_data[node], interfaces[node], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
-      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
 
+  release = "undefined"
+  
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
-    else:
-      release = "undefined"
-    update_kernel(release, host_instance)
+  image = get_centos_image(release) 
+
+  for node in hosts:
+    if node is not 'command':
+      host_instance.append(image(host_names[node], "medium", management_data[node], interfaces[node], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
+      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
+
+  if 'contrail_version' in inputs.keys():
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
     computes = host_instance[:(inputs['additional_compute']+2)]
@@ -509,7 +514,6 @@ def three_node(inputs):
       host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour="medium", management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
   else:
     contrail_version = inputs['contrail_version']
-    update_kernel("undefined", host_instance)
 
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname, "Vagrantfile"))
@@ -579,18 +583,21 @@ def three_node_vqfx(inputs):
   switch_instance = []
   computes_controllers = []
   host_instance = []
-  for node in hosts:
-    if node is not 'command':
-      host_instance.append(vm.CENTOS(name=host_names[node], flavour="medium", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
-      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
-  # take out the last node instance make it controller and install contrail with this as host
+  release = "undefined"
+  
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
-    else:
-      release = "undefined"
-    update_kernel(release, host_instance)
+  image = get_centos_image(release)  
+  
+  for node in hosts:
+    if node is not 'command':
+      host_instance.append(image(name=host_names[node], flavour="medium", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
+      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
+  # take out the last node instance make it controller and install contrail with this as host
+  if 'contrail_version' in inputs.keys():
+    #update_kernel(release, host_instance)
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
     computes = host_instance[:(inputs['additional_compute']+2)]
@@ -610,7 +617,6 @@ def three_node_vqfx(inputs):
   
   else:
     contrail_version = None
-    update_kernel("undefined", host_instance)
 
   for switch in switches:
     switch_instance.append(vm.VQFX(host_names[switch], gateway, interfaces[switch]))
@@ -639,7 +645,10 @@ def devenv(inputs):
   interfaces['node1'] = []
   management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   print(management_ip, interfaces)
-  s1 = vm.CENTOS(str(inputs['name']+"-node1"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, "kernel_upgrade.yml")), 'variables': {}}, {'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
+  image = vm.CENTOS77
+  if inputs['branch'][0] == 'R':
+    image = get_centos_image(inputs['branch'][1:])
+  s1 = image(str(inputs['name']+"-node1"), "large", management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
   # no switches one server
 
   dirname = create_workspace(inputs['name'])
@@ -687,9 +696,17 @@ def all_in_one(inputs):
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts, inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   ctrl_data_ip = {}
 
+  release = "undefined"
+  
+  if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
+    if 'contrail_deployer_branch' not in inputs.keys():
+      release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
+  image = get_centos_image(release) 
+
   for node in hosts:
     if node is not 'command':
-      host_instance.append(vm.CENTOS(name=host_names[node], flavour="large", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
+      host_instance.append(image(name=host_names[node], flavour="large", management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
   
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
@@ -711,9 +728,6 @@ def all_in_one(inputs):
         vm_ip = vboxnet_ip['node1']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
-    else:
-      release = "undefined"
-    update_kernel(release, host_instance)
     host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
     if inputs['contrail_command']:

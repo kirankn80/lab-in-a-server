@@ -14,7 +14,7 @@ flavour = {
 
 class Server(ABC):
 
-  def __init__(self, name, flavour = "low", management_ip={}, interfaces=[], provision=[]):
+  def __init__(self, name, flavour = "small", management_ip={}, interfaces=[], provision=[]):
     self.name = name
     self.interfaces = interfaces
     self.management_ip = management_ip
@@ -108,16 +108,6 @@ class Server(ABC):
         config = config + param[:-2]
     return config
 
-class CENTOS(Server):
-
-  box = "kirankn/centOS-7.5"
-
-  def __init__(self, name, flavour, management_ip={}, interfaces=[], provision=[]):
-    super().__init__(name, flavour, management_ip, interfaces, provision)
-
-  def set_initialconfig(self):
-    return super().set_initialconfig("", self.box)
-
   def set_managementip(self, config):
     if self.management_ip:
       config = config + """
@@ -137,6 +127,26 @@ class CENTOS(Server):
       end
       srv.vm.provision \"shell\", path: \"%s\""""%(os.path.join(ansible_scripts_path, 'network.yml'), self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'], os.path.join(ansible_scripts_path, 'scripts/set-centos-gw.sh'))
     return config
+
+class CENTOS75(Server):
+
+  box = "kirankn/centOS-7.5"
+
+  def __init__(self, name, flavour, management_ip={}, interfaces=[], provision=[]):
+    super().__init__(name, flavour, management_ip, interfaces, provision)
+
+  def set_initialconfig(self):
+    return super().set_initialconfig("", self.box)
+
+class CENTOS77(Server):
+  
+  box = "kirankn/centOS-7.7"
+
+  def __init__(self, name, flavour, management_ip={}, interfaces=[], provision=[]):
+    super().__init__(name, flavour, management_ip, interfaces, provision)
+
+  def set_initialconfig(self):
+    return super().set_initialconfig("", self.box)
 
 
 class Switch():

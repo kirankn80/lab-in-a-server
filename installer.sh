@@ -62,6 +62,10 @@ if [ `vagrant box list | grep kirankn/centOS-7.5 | wc -l` -eq "0" ]; then
 vagrant box add kirankn/centOS-7.5
 fi
 
+if [ `vagrant box list | grep kirankn/centOS-7.7 | wc -l` -eq "0" ]; then
+vagrant box add kirankn/centOS-7.7
+fi
+
 echo "List Box"
 vagrant box list
 

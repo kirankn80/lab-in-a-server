@@ -242,12 +242,12 @@ def set_defaults_three_node(inputs):
 
 def get_centos_image(release):
   try:
+    if float(release) < 1910:
+      image = vm.CENTOS75
     if release == "master" or float(release) > 1909 or release == "undefined":
       image = vm.CENTOS77
   except ValueError:
     image = vm.CENTOS77
-  else:
-    image = vm.CENTOS75
   return image
 
 ################## api functions
@@ -734,7 +734,6 @@ def all_in_one(inputs):
       host_instance.append(get_contrail_command(inputs, name=host_names['command'], flavour="medium", management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
   else:
     contrail_version = None
-    update_kernel("undefined", host_instance)
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname, "Vagrantfile"))
   insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)

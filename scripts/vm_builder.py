@@ -248,7 +248,7 @@ def get_centos_image(release):
     image = vm.CENTOS77
   else:
     image = vm.CENTOS75
-return image
+  return image
 
 ################## api functions
 

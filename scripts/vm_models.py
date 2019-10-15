@@ -71,8 +71,8 @@ class Server(ABC):
     end
     config.vm.provider :virtualbox do |vb|
       vb.auto_nat_dns_proxy = false
-      vb.customize [\"modifyvm\", :id, \"--memory\", \"{}\", \"--cpus\", \"{}\"]
-    end """.format(flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])
+      vb.customize [\"modifyvm\", :{}, \"--memory\", \"{}\", \"--cpus\", \"{}\"]
+    end """.format(self.name, flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])
     return config
 
   def set_managementip(self, config):

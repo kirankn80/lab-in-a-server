@@ -790,7 +790,7 @@ def show(args):
     else:
       table.add_row(["public ip", topo_info['management_data'][host]['ip']])
       table.add_row(["netmask", topo_info['management_data'][host]['netmask']])
-      table.add_row(["default gateway", topo_info['management_data'][host]['ip']])
+      table.add_row(["default gateway", topo_info['management_data'][host]['gateway']])
     if host not in topo_info['vboxnet_interfaces'].keys():
       table.add_row(["private ip", None])
     else:

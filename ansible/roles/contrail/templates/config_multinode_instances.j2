@@ -49,7 +49,7 @@ instances:
     roles:
       openstack_compute:
       vrouter:
-        PHYSICAL_INTERFACE: bond0.101
+        PHYSICAL_INTERFACE: eth2
         CPU_CORE_MASK: "0xff"
         DPDK_UIO_DRIVER: uio_pci_generic
         HUGE_PAGES: 32000
@@ -62,8 +62,7 @@ instances:
     roles:
       openstack_compute:
       vrouter:
-        PHYSICAL_INTERFACE: bond0.101
-        CPU_CORE_MASK: "0xff"
+        PHYSICAL_INTERFACE: eth2
 {% endfor %}
 contrail_configuration:
   CONTRAIL_VERSION: {{ contrail_version }}

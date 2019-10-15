@@ -843,6 +843,13 @@ def list_vm(args):
   print(table)
 
 def destroy(args):
+  destroy_topo = input("Do you want to destroy the topology? (y or n)")
+  if destroy_topo.lower() != "y":
+    if destroy_topo.lower() != "n":
+      print("Invalid input")
+      sys.exit()
+    else:
+      sys.exit()
   destory_command = ["vagrant", "destroy", "-f"]
   vbox_remove_command = ["vboxmanage", "hostonlyif", "remove"]
   vbox_list_command = ["vboxmanage", "list", "hostonlyifs"]

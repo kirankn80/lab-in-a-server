@@ -31,13 +31,17 @@ class Server(ABC):
 
   def set_initialconfig(self, config, box):
     config = config + """
-    srv_name = (\"%s\").to_sym
+    srv_name = (\"{}\").to_sym
     config.vm.define srv_name do |srv|
-      srv.vm.box = \"%s\"
+      srv.vm.box = \"{}\"
       if Vagrant.has_plugin?("vagrant-vbguest")
         srv.vbguest.auto_update = false
       end
-      srv.vm.hostname = \"%s\""""%(self.name, box, self.name)
+      srv.vm.hostname = \"{}\"
+      srv.vm.provider "virtualbox" do |v|
+        v.memory = {}
+        v.cpus = {}
+      end""".format(self.name, box, self.name, flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])
     return config
 
   def set_interfaces(self, config):
@@ -68,11 +72,11 @@ class Server(ABC):
 
   def set_endblock(self, config):
     config = config + """
-    end
-    config.vm.provider :virtualbox do |vb|
+    end"""
+    '''config.vm.provider :virtualbox do |vb|
       vb.auto_nat_dns_proxy = false
       vb.customize [\"modifyvm\", :{}, \"--memory\", \"{}\", \"--cpus\", \"{}\"]
-    end """.format(self.name, flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])
+    end """.format(self.name, flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])'''
     return config
 
   def set_managementip(self, config):

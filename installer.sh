@@ -9,6 +9,7 @@ if [ -z "$VAGRANT_VM" ] ; then
 fi
 echo "$VAGRANT_VM"
 
+apt-get install -y gnupg2
 apt-get update
 apt-get install -y wget git bridge-utils python python-pip tmux apt-transport-https software-properties-common
 
@@ -31,7 +32,7 @@ fi
 
 ## Ansible Install
 sudo apt-get update
-sudo apt-add-repository ppa:ansible/ansible
+sudo apt-add-repository -y ppa:ansible/ansible
 sudo apt-get update
 sudo apt-get -y install ansible
 ansible-galaxy install Juniper.junos
@@ -43,6 +44,9 @@ pip install --upgrade pip
 sudo apt-get update
 pip install jxmlease
 pip install junos-eznc
+
+pip install jxmlease
+pip install --ignore-installed junos-eznc
 
 ## vQFX Box Addition
 

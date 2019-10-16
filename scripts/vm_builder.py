@@ -878,10 +878,10 @@ def destroy(args):
         sys.exit()
         print("vboxmanage list hostonlyifs failed")
       else:
-        print("vboxnet ip associated with the topology is %s"%topo_info['host_vboxnet_ip'])
-        vboxnet_ip = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{{1,100}}IPAddress:\s+{}'.format(topo_info['host_vboxnet_ip']), op.stdout.decode("UTF-8"))
+        print("vboxnet ip associated with the topology is %s"%honly_interface)
+        vboxnet_ip = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{{1,100}}IPAddress:\s+{}'.format(honly_interface), op.stdout.decode("UTF-8"))
         if vboxnet_ip == []:
-          print("vboxnet interface name not found for ip address {} on host".format(topo_info['host_vboxnet_ip']))
+          print("vboxnet interface name not found for ip address {} on host".format(honly_interface))
         else:
           vbox_remove_command.append(vboxnet_ip[0])
           try:

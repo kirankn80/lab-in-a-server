@@ -67,7 +67,10 @@ def get_host_names(name, dict, list):
 ############# validation functions
 
 def validate_name(name):
-  return Regex(r'^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$').validate(name)
+  if re.match(r'^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$', name):
+    return True
+  print(Fore.RED + "Note:" + Fore.WHITE + "Name field can have letters, numbers and hyphen")
+  return False
 
 def validate_managementip(ip_address):
   ping_test = ["ping", "-q", "-c", "1"]
@@ -76,10 +79,10 @@ def validate_managementip(ip_address):
   if op.stderr:
     print(Fore.RED + "Note:" + Fore.WHITE + "IP address error")
     return False
-  packet_loss = re.findall(r"(\d{1,3}\.*\d|\d)% packet loss", op.stdout.decode("UTF-8"))
+  packet_loss = re.findall(r"(\d{1,3}\.*\d*)% packet loss", op.stdout.decode("UTF-8"))
   if float(packet_loss[0]) == 100.0:
     return True
-  print(Fore.RED + "Note:" + Fore.WHITE + "Ip address is reachable")
+  print(Fore.RED + "Note:" + Fore.WHITE + "%s is reachable"%(ip_address))
   return False
 
 # function validating the existance of file
@@ -109,16 +112,6 @@ def validate_topology_name_deletion(name):
   if name not in info.keys():
     parser.error("topology with name %s does not exist\n Check topology name"%(name)) 
   return name
-
-'''def validate_topology_name_view(name):
-  if not os.path.exists(info_file):
-    print(Fore.RED + "Note: " + Fore.WHITE + "info file not found in path")
-    parser.error("File %s not found in the path"%(info_file))
-  with open(info_file, "r") as info_file_handler:
-    info = json.load(info_file_handler)
-  if name not in info.keys():
-    parser.error("topology with name %s does not exist\n Check topology name"%(name)) 
-  return name'''
 
 def parse_input_file(file_name):
   valid_templates = ['devenv', 'all_in_one', 'three_node_vqfx', 'three_node']
@@ -477,8 +470,10 @@ def three_node(inputs):
   if 'kolla_external_vip_address' in inputs.keys():
     kolla_evip = inputs['kolla_external_vip_address']['ip']
   else:
-    kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {}, change_subnet=False)
-    kolla_evip = kolla_evip_dict['kolla-evip']
+    kolla_evip = ""
+    if vboxnet_ip != {}:
+      kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {}, change_subnet=False)
+      kolla_evip = kolla_evip_dict['kolla-evip']
 
   # control_data_ip is hostonly ip
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {}, change_subnet=True)
@@ -576,9 +571,10 @@ def three_node_vqfx(inputs):
   if 'kolla_external_vip_address' in inputs.keys():
     kolla_evip = inputs['kolla_external_vip_address']
   else:
-    kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {})
-    kolla_evip = kolla_evip_dict['kolla-evip']
-
+    kolla_evip = ""
+    if vboxnet_ip != {}:
+      kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {})
+      kolla_evip = kolla_evip_dict['kolla-evip']
   # add contrail_command_to_hosts  
 
   ctrl_data_ip, gateway, interfaces = set_up_switch_host_interfaces(interfaces, hosts, switches[0])
@@ -720,16 +716,13 @@ def all_in_one(inputs):
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
     if inputs['contrail_command']:
-      if management_data['node1'] and management_data['command']:
-        vm_ip = management_data['node1']['ip']
+      if management_data['command'] != {}:
         command_vm_ip = management_data['command']['ip']
-      elif not management_data['node1'] and not management_data['command']:
-        vm_ip = vboxnet_ip['node1']
+      if vboxnet_ip['node1'] != {}:
         command_vm_ip = vboxnet_ip['command']
-    else:
-      if management_data != {}:
+    if management_data['node1'] != {}:
         vm_ip = management_data['node1']['ip'] 
-      if vboxnet_ip != {}:
+    if vboxnet_ip['node1'] != {}:
         vm_ip = vboxnet_ip['node1']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
@@ -897,7 +890,7 @@ def destroy(args):
   return
 
 def rebuild(args):
-  vagrant_provision_command = ["vagrant", "provision"]
+  vagrant_destroy_command = ["vagrant", "destroy", "-f"]
   topology_name = args.topology_name
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
@@ -916,10 +909,10 @@ def rebuild(args):
       print("Vagrantfile does not exist in directory %s"%os.getcwd())
       sys.exit()
     try:
-      op = subprocess.run(vagrant_provision_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
+      op = subprocess.run(vagrant_destroy_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
       raise e
-      print("Could not run vagrant provision command")
+      print("Could not run vagrant destroy command")
       sys.exit()
     else:
       vagrant_up(dirname=dirname)

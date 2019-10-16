@@ -322,7 +322,7 @@ def get_vboxnet_ip(change_subnet=False):
         valid_vboxnet_tuples.append('192.168.{}.1'.format(i))
       if get_vboxnet_ip.available_vboxnet_interfaces == []:
         get_vboxnet_ip.available_vboxnet_interfaces = list(set(valid_vboxnet_tuples).difference(set(vboxnet_ips)))
-      host_vboxnet_ip.append(available_vboxnet_interfaces.pop(0))
+      host_vboxnet_ip.append(get_vboxnet_ip.available_vboxnet_interfaces.pop(0))
   vbip = str(host_vboxnet_ip[-1][:-1]+str(get_vboxnet_ip.count))
   get_vboxnet_ip.count += 1
   return vbip

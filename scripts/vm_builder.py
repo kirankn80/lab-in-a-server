@@ -295,6 +295,7 @@ def get_ctrl_data_ip(hosts):
   return ctrl_data_ip, gateway
 
 @static_var("count", 2)
+@static_var("available_vboxnet_interfaces", [])
 def get_vboxnet_ip(change_subnet=False):
   #print("\n\nhello\n\n")
   global host_vboxnet_ip
@@ -312,9 +313,6 @@ def get_vboxnet_ip(change_subnet=False):
       print("except block")
       sys.exit()
     else:
-      #print("else block")
-      #print(op.stdout.decode("UTF-8"), "\n\n\n")
-      #print(op.stderr.decode("UTF-8"), "\n\n\n")
       existing_vboxnet_tuples = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{1,100}IPAddress:\s+([\d{1,3}\.]+)', op.stdout.decode("UTF-8"))
       vboxnet_ips = []
       for vbnet in existing_vboxnet_tuples:
@@ -322,7 +320,9 @@ def get_vboxnet_ip(change_subnet=False):
       valid_vboxnet_tuples = []
       for i in range(1, 250):
         valid_vboxnet_tuples.append('192.168.{}.1'.format(i))
-      host_vboxnet_ip.append(list(set(valid_vboxnet_tuples).difference(set(vboxnet_ips)))[0])
+      if get_vboxnet_ip.available_vboxnet_interfaces == []:
+        get_vboxnet_ip.available_vboxnet_interfaces = list(set(valid_vboxnet_tuples).difference(set(vboxnet_ips)))
+      host_vboxnet_ip.append(available_vboxnet_interfaces.pop(0))
   vbip = str(host_vboxnet_ip[-1][:-1]+str(get_vboxnet_ip.count))
   get_vboxnet_ip.count += 1
   return vbip
@@ -338,7 +338,7 @@ def set_management_ips(hosts, management_ip_input, interfaces={}, vboxnet_ips={}
   if len(management_ip_input) < len(hosts):
     for node in range(len(management_ip_input), len(hosts)):
       if internalnet:
-        vboxnet_ips, interfaces = set_vboxnet_ips([hosts[node]], interfaces, vboxnet_ips)
+        vboxnet_ips, interfaces = set_vboxnet_ips([hosts[node]], interfaces, vboxnet_ips, change_subnet=False)
       management_ip[hosts[node]] = {}
   return management_ip, vboxnet_ips, interfaces
 

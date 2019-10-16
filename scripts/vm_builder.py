@@ -23,7 +23,7 @@ import yaml
 par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 #par_dir = os.path.join(lab_path, ".machines")
 
-host_vboxnet_ip = ""
+host_vboxnet_ip = []
 
 ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
 
@@ -295,9 +295,11 @@ def get_ctrl_data_ip(hosts):
   return ctrl_data_ip, gateway
 
 @static_var("count", 2)
-def get_vboxnet_ip():
+def get_vboxnet_ip(change_subnet=False):
   #print("\n\nhello\n\n")
   global host_vboxnet_ip
+  if change_subnet:
+    get_vboxnet_ip.count = 2
   vbox_command = ["vboxmanage", "list", "hostonlyifs"]
   if get_vboxnet_ip.count == 2:
     try:
@@ -320,8 +322,8 @@ def get_vboxnet_ip():
       valid_vboxnet_tuples = []
       for i in range(1, 250):
         valid_vboxnet_tuples.append('192.168.{}.1'.format(i))
-      host_vboxnet_ip = list(set(valid_vboxnet_tuples).difference(set(vboxnet_ips)))[0]
-  vbip = str(host_vboxnet_ip[:-1]+str(get_vboxnet_ip.count))
+      host_vboxnet_ip.append(list(set(valid_vboxnet_tuples).difference(set(vboxnet_ips)))[0])
+  vbip = str(host_vboxnet_ip[-1][:-1]+str(get_vboxnet_ip.count))
   get_vboxnet_ip.count += 1
   return vbip
 
@@ -340,11 +342,11 @@ def set_management_ips(hosts, management_ip_input, interfaces={}, vboxnet_ips={}
       management_ip[hosts[node]] = {}
   return management_ip, vboxnet_ips, interfaces
 
-def set_vboxnet_ips(hosts, interfaces, vboxnet_ips):
+def set_vboxnet_ips(hosts, interfaces, vboxnet_ips, change_subnet=False):
   for node in hosts:
     if node not in interfaces.keys():
       interfaces[node] = []
-    vboxip = get_vboxnet_ip()
+    vboxip = get_vboxnet_ip(change_subnet)
     vboxnet_ips[node] = vboxip
     interfaces[node].append({'name': 'h_only', 'ip': '%s'%(vboxip), 'netmask':'%s'%('255.255.255.0'), 'host_only': True})
   return vboxnet_ips, interfaces
@@ -472,13 +474,13 @@ def three_node(inputs):
   if 'kolla_external_vip_address' in inputs.keys():
     kolla_evip = inputs['kolla_external_vip_address']['ip']
   else:
-    kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {})
+    kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {}, change_subnet=False)
     kolla_evip = kolla_evip_dict['kolla-evip']
 
   # control_data_ip is hostonly ip
-  ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
+  ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {}, change_subnet=True)
 
-  kolla_ivip_dict, interface_dummy = set_vboxnet_ips(['kolla-ivip'], {}, {})
+  kolla_ivip_dict, interface_dummy = set_vboxnet_ips(['kolla-ivip'], {}, {}, change_subnet=False)
   kolla_ivip = kolla_ivip_dict['kolla-ivip']
 
   host_names = get_host_names(inputs['name'], {}, hosts)
@@ -722,7 +724,7 @@ def all_in_one(inputs):
         vm_ip = vboxnet_ip['node1']
         command_vm_ip = vboxnet_ip['command']
       else:
-        ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {})
+        ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {}, change_subnet=True)
         vm_ip = ctrl_data_ip['node1']
         command_vm_ip = ctrl_data_ip['command']
     else:
@@ -790,7 +792,7 @@ def show(args):
     else:
       table.add_row(["public ip", topo_info['management_data'][host]['ip']])
       table.add_row(["netmask", topo_info['management_data'][host]['netmask']])
-      table.add_row(["default gateway", topo_info['management_data'][host]['ip']])
+      table.add_row(["default gateway", topo_info['management_data'][host]['gateway']])
     if host not in topo_info['vboxnet_interfaces'].keys():
       table.add_row(["private ip", None])
     else:
@@ -843,6 +845,13 @@ def list_vm(args):
   print(table)
 
 def destroy(args):
+  destroy_topo = input("Do you want to destroy the topology? (y or n)")
+  if destroy_topo.lower() != "y":
+    if destroy_topo.lower() != "n":
+      print("Invalid input")
+      sys.exit()
+    else:
+      sys.exit()
   destory_command = ["vagrant", "destroy", "-f"]
   vbox_remove_command = ["vboxmanage", "hostonlyif", "remove"]
   vbox_list_command = ["vboxmanage", "list", "hostonlyifs"]
@@ -860,26 +869,27 @@ def destroy(args):
     print(e)
     print("vagrant destroy failed")
     sys.exit()
-  if topo_info['host_vboxnet_ip'] is not "":
-    try:
-      op = subprocess.run(vbox_list_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as e:
-      raise e
-      sys.exit()
-      print("vboxmanage list hostonlyifs failed")
-    else:
-      print("vboxnet ip associated with the topology is %s"%topo_info['host_vboxnet_ip'])
-      vboxnet_ip = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{{1,100}}IPAddress:\s+{}'.format(topo_info['host_vboxnet_ip']), op.stdout.decode("UTF-8"))
-      if vboxnet_ip == []:
-        print("vboxnet interface name not found for ip address {} on host".format(topo_info['host_vboxnet_ip']))
+  if topo_info['host_vboxnet_ip'] != []:
+    for honly_interface in topo_info['host_vboxnet_ip']:
+      try:
+        op = subprocess.run(vbox_list_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      except subprocess.CalledProcessError as e:
+        raise e
+        sys.exit()
+        print("vboxmanage list hostonlyifs failed")
       else:
-        vbox_remove_command.append(vboxnet_ip[0])
-        try:
-          op1 = subprocess.run(vbox_remove_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except subprocess.CalledProcessError as e:
-          raise e
-          print("Could not delete hostonly interface on the host machine")
-          sys.exit()
+        print("vboxnet ip associated with the topology is %s"%topo_info['host_vboxnet_ip'])
+        vboxnet_ip = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{{1,100}}IPAddress:\s+{}'.format(topo_info['host_vboxnet_ip']), op.stdout.decode("UTF-8"))
+        if vboxnet_ip == []:
+          print("vboxnet interface name not found for ip address {} on host".format(topo_info['host_vboxnet_ip']))
+        else:
+          vbox_remove_command.append(vboxnet_ip[0])
+          try:
+            op1 = subprocess.run(vbox_remove_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+          except subprocess.CalledProcessError as e:
+            raise e
+            print("Could not delete hostonly interface on the host machine")
+            sys.exit()
   info = json.load(open(info_file, "r"))
   del info[args.topology_name]
   json.dump(info, open(info_file, "w"))

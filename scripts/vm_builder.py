@@ -343,12 +343,15 @@ def set_management_ips(hosts, management_ip_input, interfaces={}, vboxnet_ips={}
   return management_ip, vboxnet_ips, interfaces
 
 def set_vboxnet_ips(hosts, interfaces, vboxnet_ips, change_subnet=False):
-  for node in hosts:
-    if node not in interfaces.keys():
-      interfaces[node] = []
-    vboxip = get_vboxnet_ip(change_subnet)
-    vboxnet_ips[node] = vboxip
-    interfaces[node].append({'name': 'h_only', 'ip': '%s'%(vboxip), 'netmask':'%s'%('255.255.255.0'), 'host_only': True})
+  for node in range(0, len(hosts)):
+    if hosts[node] not in interfaces.keys():
+      interfaces[hosts[node]] = []
+    if node == 0:
+      vboxip = get_vboxnet_ip(change_subnet)
+    else:
+      vboxip = get_vboxnet_ip()
+    vboxnet_ips[hosts[node]] = vboxip
+    interfaces[hosts[node]].append({'name': 'h_only', 'ip': '%s'%(vboxip), 'netmask':'%s'%('255.255.255.0'), 'host_only': True})
   return vboxnet_ips, interfaces
 
 # setting up internal_networks

@@ -712,17 +712,17 @@ def all_in_one(inputs):
   for node in hosts:
     if node is not 'command':
       host_instance.append(image(name=host_names[node], flavour=get_flavour(inputs, "large"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
-  
+
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
     if inputs['contrail_command']:
       if management_data['command'] != {}:
         command_vm_ip = management_data['command']['ip']
-      if vboxnet_ip['node1'] != {}:
+      if 'command' in vboxnet_ip.keys():
         command_vm_ip = vboxnet_ip['command']
     if management_data['node1'] != {}:
         vm_ip = management_data['node1']['ip'] 
-    if vboxnet_ip['node1'] != {}:
+    if 'node1' in vboxnet_ip.keys():
         vm_ip = vboxnet_ip['node1']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])

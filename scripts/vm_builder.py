@@ -726,10 +726,6 @@ def all_in_one(inputs):
       elif not management_data['node1'] and not management_data['command']:
         vm_ip = vboxnet_ip['node1']
         command_vm_ip = vboxnet_ip['command']
-      else:
-        ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {}, change_subnet=True)
-        vm_ip = ctrl_data_ip['node1']
-        command_vm_ip = ctrl_data_ip['command']
     else:
       if management_data != {}:
         vm_ip = management_data['node1']['ip'] 
@@ -984,6 +980,8 @@ if __name__ == '__main__':
   #print(args)
   if args.command == "list":
     list_vm(args)
+  elif args.command == None:
+    parser.print_help()
   else:
     globals()[args.command](args)
 

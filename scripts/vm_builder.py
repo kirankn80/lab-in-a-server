@@ -875,7 +875,8 @@ def destroy(args):
         if vboxnet_ip == []:
           print("vboxnet interface name not found for ip address {} on host".format(honly_interface))
         else:
-          vbox_remove_command.append(vboxnet_ip[0])
+          vbox_remove_command_exec = vbox_remove_command[:]
+          vbox_remove_command_exec.append(vboxnet_ip[0])
           try:
             op1 = subprocess.run(vbox_remove_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
           except subprocess.CalledProcessError as e:

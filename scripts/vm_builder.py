@@ -878,7 +878,7 @@ def destroy(args):
           vbox_remove_command_exec = vbox_remove_command[:]
           vbox_remove_command_exec.append(vboxnet_ip[0])
           try:
-            op1 = subprocess.run(vbox_remove_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            op1 = subprocess.run(vbox_remove_command_exec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
           except subprocess.CalledProcessError as e:
             raise e
             print("Could not delete hostonly interface on the host machine")

@@ -1,20 +1,20 @@
 from abc import ABC
 from enum import Enum
-#from jinja2 import Template, FileSystemLoader, Environment
 import os
 
 ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
 par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 
 flavour = {
-  'large': {'memory': '32768', 'cpu': '8'},
-  'medium': {'memory': '16384', 'cpu': '4'},
+  'large': {'memory': '49512', 'cpu': '4'},
+  'medium': {'memory': '32768', 'cpu': '4'},
   'small': {'memory': '8192', 'cpu': '2'}
 }
 
+
 class Server(ABC):
 
-  def __init__(self, name, flavour = "small", management_ip={}, interfaces=[], provision=[]):
+  def __init__(self, name, flavour="small", management_ip={}, interfaces=[], provision=[]):
     self.name = name
     self.interfaces = interfaces
     self.management_ip = management_ip
@@ -268,7 +268,7 @@ def provision_groups(groups_dict, provision_playbook):
     end"""
   return config
 
-def generate_vagrant_file(hosts,switches,groups_dict={},provision_playbook="",file_name="Vagrantfile"):
+def generate_vagrant_file(hosts, switches, groups_dict={}, provision_playbook="", file_name="Vagrantfile"):
   with open(file_name, 'w') as f:
     f.write(get_common_file_contents(2))
     f.write(get_devices(switches))

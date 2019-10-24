@@ -4,8 +4,7 @@
 
 This tool can be used to create pre-defined virtual topologies on a single server very easily. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant to provision the topologies with suitable contrail version. At the end, what the users get is a tool which make the life of developers and testers easy to creating and configuring contrail topologies very easy. This tool can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
 
-[My Test](#My-Test)
-[3. Three node with VQFX](#Three-node-with-VQFX)
+[3. Three node with VQFX](#3.-Three-node-with-VQFX)
 
 ## Installation
 
@@ -156,7 +155,7 @@ Openstack version is "queens" by default.
 #### 4. contrail_command: <True/False> (optional)
 If this field is specified, then contrail-command is installed and one of the ip addresses from the management_ip list will be assigned to the node.
 
-### Three node with VQFX
+### 3.Three node with VQFX
 The template spins up 1 controller node and 2 compute nodes connected to VQFX box.
 
 ![three node with vqfx setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/tnv.png)

@@ -4,7 +4,7 @@
 
 This tool can be used to create pre-defined virtual topologies on a single server very easily. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant to provision the topologies with suitable contrail version. At the end, what the users get is a tool which make the life of developers and testers easy to creating and configuring contrail topologies very easy. This tool can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
 
-[3. Three node with VQFX](#3Three-node-with-VQFX)
+[3. Three node with VQFX](#3-Three-node-with-VQFX)
 
 ## Installation
 

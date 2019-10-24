@@ -4,7 +4,7 @@
 
 This tool can be used to create pre-defined virtual topologies on a single server very easily. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant to provision the topologies with suitable contrail version. At the end, what the users get is a tool which make the life of developers and testers easy to creating and configuring contrail topologies very easy. This tool can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
 
-[My Foxy Proxy](#foo)
+[My Foxy Proxy](#My-Test)
 
 ## Installation
 
@@ -212,7 +212,7 @@ If the contrail_version is not specified during topology creation, the virtual m
 
 ### Accessing Private IP addresses on the host-machine
 #### FoxyProxy
-## foo
+## My Test
 Creates a tunnel to host machine using port forwarding.   
 [https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-Chrome-Setup.md](https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-Chrome-Setup.md)    
 [https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-FireFox-Setup.md](https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-FireFox-Setup.md)

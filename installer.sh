@@ -61,11 +61,13 @@ fi
 
 # Download and Addd CentOS-7.5 Box
 if [ `vagrant box list | grep kirankn/centOS-7.5 | wc -l` -eq "0" ]; then
-vagrant box add kirankn/centOS-7.5
+wget http://10.204.217.158/images/kirankn/centos-7.5-virtualbox.box
+vagrant box add --name kirankn/centOS-7.5 /var/tmp/centos-7.5-virtualbox.box
 fi
 
 if [ `vagrant box list | grep kirankn/centOS-7.7 | wc -l` -eq "0" ]; then
-vagrant box add kirankn/centOS-7.7
+wget http://10.204.217.158/images/kirankn/centos-7.7-virtualbox.box
+vagrant box add --name kirankn/centOS-7.7 /var/tmp/centos-7.7-virtualbox.box
 fi
 
 echo "List Box"

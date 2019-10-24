@@ -155,7 +155,7 @@ Openstack version is "queens" by default.
 #### 4. contrail_command: <True/False> (optional)
 If this field is specified, then contrail-command is installed and one of the ip addresses from the management_ip list will be assigned to the node.
 
-### 3.Three node with VQFX
+### 3. Three node with VQFX
 The template spins up 1 controller node and 2 compute nodes connected to VQFX box.
 
 ![three node with vqfx setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/tnv.png)

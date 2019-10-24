@@ -212,7 +212,7 @@ If the contrail_version is not specified during topology creation, the virtual m
 
 ### Accessing Private IP addresses on the host-machine
 #### FoxyProxy
-#foo
+## foo
 Creates a tunnel to host machine using port forwarding.   
 [https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-Chrome-Setup.md](https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-Chrome-Setup.md)    
 [https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-FireFox-Setup.md](https://github.com/kirankn80/cfm-vagrant/blob/master/docs/FoxyProxy-FireFox-Setup.md)

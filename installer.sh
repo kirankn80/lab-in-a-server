@@ -43,7 +43,7 @@ sudo ansible-galaxy install Juniper.junos
 pip install --upgrade pip
 sudo apt-get update
 pip install jxmlease
-pip install junos-eznc
+pip install --ignore-installed junos-eznc
 
 
 ## vQFX Box Addition

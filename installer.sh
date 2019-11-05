@@ -74,7 +74,7 @@ echo "List Box"
 vagrant box list
 
 sudo apt-get install -y python3-pip
-pip3 install requests colorama schema pyyaml argparse prettytable pTable
+pip3 install -U requests colorama schema pyyaml argparse prettytable pTable
 pip install jxmlease
 pip install --ignore-installed junos-eznc
 

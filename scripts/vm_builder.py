@@ -302,8 +302,8 @@ def get_vboxnet_ip(change_subnet=False):
       print(op.stderr.decode("UTF-8"))
       #print("try block")
     except subprocess.CalledProcessError as e:
-      raise e
-      print("except block")
+      print("error running \"Vboxmanage list hostonlyifs\"")
+      print(e)
       sys.exit()
     else:
       existing_vboxnet_tuples = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{1,100}IPAddress:\s+([\d{1,3}\.]+)', op.stdout.decode("UTF-8"))
@@ -408,9 +408,8 @@ def create_workspace(name):
   try:
     os.mkdir(dirname) 
   except OSError as e:
-    print(e)
-    raise(e)
     print("failed to create workspace")
+    print(e)
     sys.exit()
   return dirname
 
@@ -419,9 +418,8 @@ def destroy_workspace(dirname):
     os.chdir("/root")
     shutil.rmtree(dirname)
   except Exception as e:
-    print(e)
-    raise(e)
     print("failed to delete workspace %s"%(dirname))
+    print(e)
     sys.exit()
 
 
@@ -447,7 +445,7 @@ def three_node(inputs):
     Optional('contrail_version'): str,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)), 
     Optional('contrail_command'): bool,
-    Optional('kolla_external_vip_address'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))),
+    Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip)),
     Optional('additional_compute') : int,
     Optional('additional_control'): int,
     Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
@@ -858,17 +856,17 @@ def destroy(args):
     os.chdir(dirname)
     op = subprocess.run(destory_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
   except subprocess.CalledProcessError as e:
-    print(e)
     print("vagrant destroy failed")
+    print(e)
     sys.exit()
   if topo_info['host_vboxnet_ip'] != []:
     for honly_interface in topo_info['host_vboxnet_ip']:
       try:
         op = subprocess.run(vbox_list_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       except subprocess.CalledProcessError as e:
-        raise e
-        sys.exit()
         print("vboxmanage list hostonlyifs failed")
+        print(e)
+        sys.exit()
       else:
         print("vboxnet ip associated with the topology is %s"%honly_interface)
         vboxnet_ip = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{{1,100}}IPAddress:\s+{}'.format(honly_interface), op.stdout.decode("UTF-8"))
@@ -880,8 +878,8 @@ def destroy(args):
           try:
             op1 = subprocess.run(vbox_remove_command_exec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
           except subprocess.CalledProcessError as e:
-            raise e
             print("Could not delete hostonly interface on the host machine")
+            print(e)
             sys.exit()
   info = json.load(open(info_file, "r"))
   del info[args.topology_name]
@@ -902,7 +900,6 @@ def rebuild(args):
   except Exception as e:
     print(e)
     print("cannot change directory to %s"%dirname)
-    raise(e)
     sys.exit()
   else:
     print(os.getcwd())
@@ -912,8 +909,8 @@ def rebuild(args):
     try:
       op = subprocess.run(vagrant_destroy_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-      raise e
       print("Could not run vagrant destroy command")
+      print(e)
       sys.exit()
     else:
       vagrant_up(dirname=dirname)
@@ -934,7 +931,6 @@ def vagrant_up(dirname="", topology_name=""):
   except Exception as e:
     print(e)
     print("cannot change directory to %s"%dirname)
-    raise(e)
     sys.exit()
   else:
     print(os.getcwd())
@@ -944,8 +940,8 @@ def vagrant_up(dirname="", topology_name=""):
     try:
       op = subprocess.run(vagrant_up_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-      raise e
       print("Could not run vagrant up command")
+      print(e)
       sys.exit()
   print("Virtual machines are up")
 

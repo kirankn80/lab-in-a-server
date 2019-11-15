@@ -15,9 +15,8 @@
     state: latest
 
 - name: Install ansible
-  yum:
-    name: ansible
-    state: latest
+  pip:
+    name: ansible==2.8.6
 
 - name: Install git
   yum:

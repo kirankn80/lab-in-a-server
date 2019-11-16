@@ -9,6 +9,7 @@ if [ -z "$VAGRANT_VM" ] ; then
 fi
 echo "$VAGRANT_VM"
 
+apt-get install -y gnupg2
 apt-get update
 apt-get install -y wget git bridge-utils python python-pip tmux apt-transport-https software-properties-common
 
@@ -31,9 +32,10 @@ fi
 
 ## Ansible Install
 sudo apt-get update
-sudo apt-add-repository ppa:ansible/ansible
+sudo apt-add-repository -y ppa:ansible/ansible
 sudo apt-get update
-sudo apt-get -y install ansible
+pip install --upgrade pip
+pip install ansible==2.8.6
 ansible-galaxy install Juniper.junos
 
 ## Install JunOS Ansible Module and Python Modules
@@ -42,7 +44,8 @@ sudo ansible-galaxy install Juniper.junos
 pip install --upgrade pip
 sudo apt-get update
 pip install jxmlease
-pip install junos-eznc
+pip install --ignore-installed junos-eznc
+
 
 ## vQFX Box Addition
 
@@ -59,18 +62,22 @@ fi
 
 # Download and Addd CentOS-7.5 Box
 if [ `vagrant box list | grep kirankn/centOS-7.5 | wc -l` -eq "0" ]; then
-vagrant box add kirankn/centOS-7.5
+wget http://10.204.217.158/images/kirankn/centos-7.5-virtualbox.box
+vagrant box add --name kirankn/centOS-7.5 /var/tmp/centos-7.5-virtualbox.box
 fi
 
 if [ `vagrant box list | grep kirankn/centOS-7.7 | wc -l` -eq "0" ]; then
-vagrant box add kirankn/centOS-7.7
+wget http://10.204.217.158/images/kirankn/centos-7.7-virtualbox.box
+vagrant box add --name kirankn/centOS-7.7 /var/tmp/centos-7.7-virtualbox.box
 fi
 
 echo "List Box"
 vagrant box list
 
 sudo apt-get install -y python3-pip
-pip3 install requests colorama schema pyyaml argparse prettytable pTable
+pip3 install -U requests colorama schema pyyaml argparse prettytable pTable
+pip install jxmlease
+pip install --ignore-installed junos-eznc
 
 MACHINE_DIR="`(cd ~ && pwd)`"
 if [ -z "$MACHINE_DIR" ] ; then

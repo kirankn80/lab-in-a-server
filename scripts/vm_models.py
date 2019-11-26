@@ -6,7 +6,7 @@ ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
 par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 
 flavour = {
-  'large': {'memory': '49512', 'cpu': '4'},
+  'large': {'memory': '32768', 'cpu': '4'},
   'medium': {'memory': '32768', 'cpu': '4'},
   'small': {'memory': '8192', 'cpu': '2'}
 }
@@ -78,9 +78,6 @@ class Server(ABC):
       vb.customize [\"modifyvm\", :{}, \"--memory\", \"{}\", \"--cpus\", \"{}\"]
     end """.format(self.name, flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])'''
     return config
-
-  def set_managementip(self, config):
-    pass
 
   def provision_vm(self, config):
     for item in self.provision:

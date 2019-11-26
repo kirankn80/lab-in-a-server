@@ -64,6 +64,12 @@ def get_host_names(name, dict, list):
       dict[element] = str(name+'-'+element)
   return dict
 
+def management_ip(fip, vboxnet_ip, node):
+  if not fip[node]:
+    return vboxnet_ip[node]
+  else:
+    return fip[node]['ip']
+
 ############# validation functions
 
 def validate_name(name):
@@ -302,8 +308,9 @@ def get_vboxnet_ip(change_subnet=False):
       print(op.stderr.decode("UTF-8"))
       #print("try block")
     except subprocess.CalledProcessError as e:
-      raise e
-      print("except block")
+      #print("except block")
+      print("Error in listing hostonlyifs")
+      print(e)
       sys.exit()
     else:
       existing_vboxnet_tuples = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{1,100}IPAddress:\s+([\d{1,3}\.]+)', op.stdout.decode("UTF-8"))
@@ -408,9 +415,8 @@ def create_workspace(name):
   try:
     os.mkdir(dirname) 
   except OSError as e:
-    print(e)
-    raise(e)
     print("failed to create workspace")
+    print(e)
     sys.exit()
   return dirname
 
@@ -419,9 +425,8 @@ def destroy_workspace(dirname):
     os.chdir("/root")
     shutil.rmtree(dirname)
   except Exception as e:
-    print(e)
-    raise(e)
     print("failed to delete workspace %s"%(dirname))
+    print(e)
     sys.exit()
 
 
@@ -472,14 +477,15 @@ def three_node(inputs):
   else:
     kolla_evip = ""
     if vboxnet_ip != {}:
-      kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {}, change_subnet=False)
+      kolla_evip_dict, _ = set_vboxnet_ips(['kolla-evip'], {}, {}, change_subnet=False)
       kolla_evip = kolla_evip_dict['kolla-evip']
 
   # control_data_ip is hostonly ip
   ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {}, change_subnet=True)
+  ctrl_data_gateway = host_vboxnet_ip[-1]
 
-  kolla_ivip_dict, interface_dummy = set_vboxnet_ips(['kolla-ivip'], {}, {}, change_subnet=False)
-  kolla_ivip = kolla_ivip_dict['kolla-ivip']
+  #kolla_ivip_dict, interface_dummy = set_vboxnet_ips(['kolla-ivip'], {}, {}, change_subnet=False)
+  #kolla_ivip = kolla_ivip_dict['kolla-ivip']
 
   host_names = get_host_names(inputs['name'], {}, hosts)
   host_instance = []
@@ -496,25 +502,25 @@ def three_node(inputs):
   for node in hosts:
     if node is not 'command':
       host_instance.append(image(host_names[node], get_flavour(inputs, "medium"), management_data[node], interfaces[node], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
-      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
+      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
 
   if 'contrail_version' in inputs.keys():
     primary = computes_controllers.pop()
     contrail_host = host_instance.pop()
     computes = host_instance[:(inputs['additional_compute']+2)]
     computes_ip = computes_controllers[:(inputs['additional_compute']+2)]
-    controls = host_instance[(inputs['additional_compute']+2):]
+    #controls = host_instance[(inputs['additional_compute']+2):]
     controls_ip = computes_controllers[(inputs['additional_compute']+2):]
   # increase computes size
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = get_flavour(inputs, "large")
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_ivip, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
     if inputs['contrail_command']:
-      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
+      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=management_ip(management_data, vboxnet_ip, 'command')))
   else:
     contrail_version = None
 
@@ -551,7 +557,7 @@ def three_node_vqfx(inputs):
 
   ctrl_data_ip = {}
   management_data = {}
-  vboxnet_ips = {}
+  vboxnet_ip = {}
   # number of nodes
   nodes_count = 3
   # adding additional nodes as per input file
@@ -573,12 +579,12 @@ def three_node_vqfx(inputs):
   else:
     kolla_evip = ""
     if vboxnet_ip != {}:
-      kolla_evip_dict, interface_dummy = set_vboxnet_ips(['kolla-evip'], {}, {})
+      kolla_evip_dict, _ = set_vboxnet_ips(['kolla-evip'], {}, {})
       kolla_evip = kolla_evip_dict['kolla-evip']
   # add contrail_command_to_hosts  
 
-  ctrl_data_ip, gateway, interfaces = set_up_switch_host_interfaces(interfaces, hosts, switches[0])
-  kolla_ivip = str(gateway.rsplit(".", 1)[0] + "." + str(len(ctrl_data_ip)+2))
+  ctrl_data_ip, ctrl_data_gateway, interfaces = set_up_switch_host_interfaces(interfaces, hosts, switches[0])
+  #kolla_ivip = str(ctrl_data_gateway.rsplit(".", 1)[0] + "." + str(len(ctrl_data_ip)+2))
   # setting up dummy hostname //?? required??
   host_names = {}
   host_names = get_host_names(inputs['name'], host_names, hosts)
@@ -598,7 +604,7 @@ def three_node_vqfx(inputs):
   for node in hosts:
     if node is not 'command':
       host_instance.append(image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
-      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node]})
+      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
   # take out the last node instance make it controller and install contrail with this as host
   if 'contrail_version' in inputs.keys():
     #update_kernel(release, host_instance)
@@ -606,24 +612,24 @@ def three_node_vqfx(inputs):
     contrail_host = host_instance.pop()
     computes = host_instance[:(inputs['additional_compute']+2)]
     computes_ip = computes_controllers[:(inputs['additional_compute']+2)]
-    controls = host_instance[(inputs['additional_compute']+2):]
+    #controls = host_instance[(inputs['additional_compute']+2):]
     controls_ip = computes_controllers[(inputs['additional_compute']+2):]
     # allocate more memory for computes
     for compute_node in computes:
       print(compute_node)
       compute_node.flavour = get_flavour(inputs, "large")
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'kvrouter_id': "101", 'computes': computes_ip, 'kolla_ivip': kolla_ivip, 'kolla_evip': kolla_evip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'kvrouter_id': "101", 'computes': computes_ip, 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
     contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     
     if inputs['contrail_command']:
-      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=ctrl_data_ip['command']))
+      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=management_ip(management_data, vboxnet_ip, 'command')))
   
   else:
     contrail_version = None
 
   for switch in switches:
-    switch_instance.append(vm.VQFX(host_names[switch], gateway, interfaces[switch]))
+    switch_instance.append(vm.VQFX(host_names[switch], ctrl_data_gateway, interfaces[switch]))
 
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file(host_instance, switch_instance, file_name=os.path.join(dirname, "Vagrantfile"))
@@ -858,17 +864,17 @@ def destroy(args):
     os.chdir(dirname)
     op = subprocess.run(destory_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
   except subprocess.CalledProcessError as e:
-    print(e)
     print("vagrant destroy failed")
+    print(e)
     sys.exit()
   if topo_info['host_vboxnet_ip'] != []:
     for honly_interface in topo_info['host_vboxnet_ip']:
       try:
         op = subprocess.run(vbox_list_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       except subprocess.CalledProcessError as e:
-        raise e
-        sys.exit()
         print("vboxmanage list hostonlyifs failed")
+        print(e)
+        sys.exit()
       else:
         print("vboxnet ip associated with the topology is %s"%honly_interface)
         vboxnet_ip = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{{1,100}}IPAddress:\s+{}'.format(honly_interface), op.stdout.decode("UTF-8"))
@@ -880,8 +886,8 @@ def destroy(args):
           try:
             op1 = subprocess.run(vbox_remove_command_exec, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
           except subprocess.CalledProcessError as e:
-            raise e
             print("Could not delete hostonly interface on the host machine")
+            print(e)
             sys.exit()
   info = json.load(open(info_file, "r"))
   del info[args.topology_name]
@@ -900,9 +906,8 @@ def rebuild(args):
   try:
     os.chdir(dirname)
   except Exception as e:
-    print(e)
     print("cannot change directory to %s"%dirname)
-    raise(e)
+    print(e)
     sys.exit()
   else:
     print(os.getcwd())
@@ -912,8 +917,8 @@ def rebuild(args):
     try:
       op = subprocess.run(vagrant_destroy_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-      raise e
       print("Could not run vagrant destroy command")
+      print(e)
       sys.exit()
     else:
       vagrant_up(dirname=dirname)
@@ -932,9 +937,8 @@ def vagrant_up(dirname="", topology_name=""):
   try:
     os.chdir(dirname)
   except Exception as e:
-    print(e)
     print("cannot change directory to %s"%dirname)
-    raise(e)
+    print(e)
     sys.exit()
   else:
     print(os.getcwd())
@@ -944,8 +948,8 @@ def vagrant_up(dirname="", topology_name=""):
     try:
       op = subprocess.run(vagrant_up_command, stdout=sys.stdout, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-      raise e
       print("Could not run vagrant up command")
+      print(e)
       sys.exit()
   print("Virtual machines are up")
 

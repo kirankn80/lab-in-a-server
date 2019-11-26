@@ -34,7 +34,8 @@ fi
 sudo apt-get update
 sudo apt-add-repository -y ppa:ansible/ansible
 sudo apt-get update
-sudo apt-get -y install ansible
+pip install --upgrade pip
+pip install ansible==2.8.6
 ansible-galaxy install Juniper.junos
 
 ## Install JunOS Ansible Module and Python Modules

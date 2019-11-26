@@ -52,6 +52,11 @@
     mode: 0600
   when: authorized_keys.stat.exists
 
+- name: Install sshpass
+  yum:
+    name: sshpass
+    state: present
+
 - name: Restart sshd
   systemd:
     name: sshd

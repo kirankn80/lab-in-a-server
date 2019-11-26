@@ -92,9 +92,6 @@ kolla_config:
     keepalived_virtual_router_id: {{ kvrouter_id }}
 {% endif %}
     enable_haproxy: yes
-{% else %}
-    enable_haproxy: no
-{% endif %}
   kolla_passwords:
     keystone_admin_password: contrail123
   customize:

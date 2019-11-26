@@ -9,15 +9,19 @@
     name: python-pip
     state: latest
 
+- name: Install python-devel
+  yum:
+    name: python-devel
+    state: present
+
 - name: Install python-setuptools
   yum:
     name: python-setuptools
     state: latest
 
 - name: Install ansible
-  yum:
-    name: ansible
-    state: latest
+  pip:
+    name: ansible==2.8.6
 
 - name: Install git
   yum:

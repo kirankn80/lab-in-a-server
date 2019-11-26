@@ -452,7 +452,7 @@ def three_node(inputs):
     Optional('contrail_version'): str,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)), 
     Optional('contrail_command'): bool,
-    Optional('kolla_external_vip_address'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))),
+    Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
     Optional('additional_compute') : int,
     Optional('additional_control'): int,
     Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
@@ -473,7 +473,7 @@ def three_node(inputs):
   management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
   # add contrail_command_to_hosts
   if 'kolla_external_vip_address' in inputs.keys():
-    kolla_evip = inputs['kolla_external_vip_address']['ip']
+    kolla_evip = inputs['kolla_external_vip_address']
   else:
     kolla_evip = ""
     if vboxnet_ip != {}:
@@ -544,7 +544,7 @@ def three_node_vqfx(inputs):
     Optional('contrail_version'): str,
     Optional('internal_network'): bool,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
-    Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip)),
+    Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
     Optional('contrail_command'): bool,
     Optional('template') : str,
     Optional('registry') : And(str, lambda repo: validate_registry(repo)),

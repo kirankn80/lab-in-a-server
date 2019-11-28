@@ -79,7 +79,9 @@ contrail_configuration:
   CONTROL_NODES: {{ controller_cdip|join(',') }}
   VROUTER_GATEWAY: {{ ctrl_data_gateway }}
   OPENSTACK_VERSION: {{ openstack_version }}
+{% if controls|length != 0 %} 
   KEYSTONE_AUTH_HOST: {{ kolla_evip }}
+{% endif %}
   AUTH_MODE: keystone
   KEYSTONE_AUTH_URL_VERSION: /v3
 kolla_config:

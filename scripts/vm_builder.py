@@ -70,6 +70,12 @@ def management_ip(fip, vboxnet_ip, node):
   else:
     return fip[node]['ip']
 
+def get_flavour_from_host_instance(host_instance_list):
+  flavour_dict = {}
+  for host_instance in host_instance_list:
+    flavour_dict[host_instance[0]] = host_instance[1].flavour
+  return flavour_dict
+
 ############# validation functions
 
 def validate_name(name):
@@ -140,7 +146,6 @@ def validate_tnv_additional_nodes(inputs, n):
   print(Fore.RED + "Note: " + Fore.WHITE + "Total number of nodes connected to switch cannot exceed 5")
   return False
     
-
 def validate_tnv_dpdk_computes(inputs, n):
   an = inputs['additional_nodes']
   if n <= (2 + inputs['additional_compute']):
@@ -193,16 +198,56 @@ def validate_deployer_branch(input_branch):
     print(all_branches)
     return False
 
+def validate_fip_count(fip_list, expected_count, command, internal_network):
+  if command:
+    expected_count += 1
+  if len(fip_list) < expected_count and internal_network == False:
+    print(Fore.RED + "Note:" + Fore.WHITE + "The number of management ips given is less than expected. Please give %d ips as input or make internal_network field as True to use private ips."%(expected_count))
+    return False
+  if len(fip_list) < expected_count and internal_network == True:
+    use_internal_network = input("The number of management ips given is less than expected. Enter yes to use private ips as management ips. Enter no to abort\n")
+    if use_internal_network.lower() != 'yes':
+      if use_internal_network.lower() != 'no':
+        print("Invalid input")
+        return False
+      else:
+        print("The number of management ips given is less than expected. Please give %d ips as input or make internal_network field as True to use private ips." % (expected_count))
+        return False
+    return True
+  return True
+
+def is_memory_sufficient(falvour_dict):
+  clear_cache()
+  memory_details = get_memory_details('m')
+  required_memory = 0
+  for _, flavour in falvour_dict.items():
+    required_memory = required_memory + vm.flavour[flavour]['memory']
+  if (memory_details['available'] - required_memory) > 10240:
+    return True
+  else:
+    print("Free memory is %d MB\n Memory required is %d MB\n Spinning up the toplogy will cause the host machine to have memory %d MB\n Aborting due to shoratge of memory \n"%(memory_details['available'], required_memory, (memory_details['available']-required_memory)))
+    return False
+
 #########################set defaults
 
 def set_defaults(inputs):
+  if 'openstack_version' not in inputs.keys():
+    inputs['openstack_version'] = "queens"
 
-  if 'management_ip' in inputs.keys() and ('netmask' not in inputs.keys() or 'gateway' not in inputs.keys()):
-    print(Fore.RED + "Please specify netmask and gateway fields" + Fore.WHITE + "")
-    sys.exit()
+  if 'registry' not in inputs.keys():
+    inputs['registry'] = "cirepo"
+
+  if 'contrail_command' not in inputs.keys():
+    inputs['contrail_command'] = False
 
   if 'internal_network' not in inputs.keys():
     inputs['internal_network'] = False
+ 
+def format_management_ip(inputs):
+  if 'management_ip' in inputs.keys() and ('netmask' not in inputs.keys() or 'gateway' not in inputs.keys()):
+    print(Fore.RED + "Note:" + Fore.WHITE +
+          "Please specify netmask and gateway fields")
+    sys.exit()
 
   if 'management_ip' not in inputs.keys():
     inputs['management_ip'] = []
@@ -219,15 +264,6 @@ def set_defaults(inputs):
     management_ips.append(management_ip_dict)
   
   inputs['management_ip'] = management_ips
-
-  if 'openstack_version' not in inputs.keys():
-    inputs['openstack_version'] = "queens"
-
-  if 'registry' not in inputs.keys():
-    inputs['registry'] = "cirepo"
-
-  if 'contrail_command' not in inputs.keys():
-    inputs['contrail_command'] = False
 
 def set_defaults_three_node(inputs):
 
@@ -327,19 +363,19 @@ def get_vboxnet_ip(change_subnet=False):
   get_vboxnet_ip.count += 1
   return vbip
 
-# assign one management ip to each host and {} when given number of management ip is less
-def set_management_ips(hosts, management_ip_input, interfaces={}, vboxnet_ips={}, internalnet=0):
+# This is reached when either management_ip_input number matches required ips or when internal_network is True
+def set_management_ips(hosts, management_ip_input, interfaces, vboxnet_ips, internal_network):
   for node in hosts:
     if node not in interfaces.keys():
       interfaces[node] = []
   management_ip = {}
-  for node in range(0, min(len(management_ip_input), len(hosts))):
-    management_ip[hosts[node]] = management_ip_input[node]
-  if len(management_ip_input) < len(hosts):
-    for node in range(len(management_ip_input), len(hosts)):
-      if internalnet:
-        vboxnet_ips, interfaces = set_vboxnet_ips([hosts[node]], interfaces, vboxnet_ips, change_subnet=False)
-      management_ip[hosts[node]] = {}
+  if len(management_ip_input) >= len(hosts):
+    for node in range(0, len(hosts)):
+      management_ip[hosts[node]] = management_ip_input[node]
+  elif len(management_ip_input) < len(hosts) and internal_network:
+    vboxnet_ips, interfaces = set_vboxnet_ips(hosts, interfaces, vboxnet_ips, change_subnet=False)
+    for node in hosts:
+      management_ip[node] = {}
   return management_ip, vboxnet_ips, interfaces
 
 def set_vboxnet_ips(hosts, interfaces, vboxnet_ips, change_subnet=False):
@@ -382,7 +418,9 @@ def set_up_switch_switch_interfaces(interfaces, switch1, switch2):
   return interfaces
 
 ############### update info file 
-def insert_topo_info(template, name, hosts, host_names, switches=[], management_ips={}, vboxnet_ips={}, ctrl_data_ips={}, contrail_version=None):
+
+
+def insert_topo_info(template, name, hosts, host_names, flavour_dict, switches=[], management_ips={}, vboxnet_ips={}, ctrl_data_ips={}, contrail_version=None):
   topo_info = {}
   print(os.path.join(par_dir, name))
   topo_info['contrail_version'] = contrail_version
@@ -395,6 +433,7 @@ def insert_topo_info(template, name, hosts, host_names, switches=[], management_
   topo_info['vboxnet_interfaces'] = vboxnet_ips
   topo_info['ctrl_data_ip'] = ctrl_data_ips
   topo_info['hostnames'] = host_names
+  topo_info['flavour'] = flavour_dict
 
   if not os.path.exists(info_file):
     print("info file not found in path")
@@ -443,10 +482,13 @@ def get_contrail_command(inputs, name, flavour, management_ip, interfaces, vm_ip
 def three_node(inputs):
   # validate input fields
   set_defaults_three_node(inputs)
+  nodes_count = 3
+  nodes_count = nodes_count + inputs['additional_nodes']
+  set_defaults(inputs)
 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     'additional_nodes': And(int, int),
-    Optional('management_ip') : And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))), 
+    Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, nodes_count, inputs['contrail_command'], inputs['internal_network'])),
     Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
     Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
     Optional('contrail_version'): str,
@@ -462,9 +504,7 @@ def three_node(inputs):
     Optional('internal_network'): bool,
     Optional('template'): str}).validate(inputs)
 
-  set_defaults(inputs)
-  nodes_count = 3
-  nodes_count = nodes_count + inputs['additional_nodes']
+  format_management_ip(inputs)
   hosts = get_keys('node', nodes_count)
   interfaces = {}
   if inputs['contrail_command']:
@@ -490,9 +530,8 @@ def three_node(inputs):
   host_names = get_host_names(inputs['name'], {}, hosts)
   host_instance = []
   computes_controllers = []
-
   release = "undefined"
-  
+
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
     if 'contrail_deployer_branch' not in inputs.keys():
@@ -501,7 +540,8 @@ def three_node(inputs):
 
   for node in hosts:
     if node is not 'command':
-      host_instance.append(image(host_names[node], get_flavour(inputs, "medium"), management_data[node], interfaces[node], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
+      host_instance.append((node, image(host_names[node], get_flavour(inputs, "medium"), management_data[node], interfaces[node], [
+                           {'method': 'ansible', 'path': "\"%s\"" % (os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}])))
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
 
   if 'contrail_version' in inputs.keys():
@@ -514,19 +554,21 @@ def three_node(inputs):
   # increase computes size
     for compute_node in computes:
       print(compute_node)
-      compute_node.flavour = get_flavour(inputs, "large")
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
-    contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
+      compute_node[1].flavour = get_flavour(inputs, "large")
+    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host[1].provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
     if inputs['contrail_command']:
-      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=management_ip(management_data, vboxnet_ip, 'command')))
+      host_instance.append(('command', get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=management_ip(management_data, vboxnet_ip, 'command'))))
   else:
     contrail_version = None
-
+  flavour_dict = get_flavour_from_host_instance(host_instance)
+  if not is_memory_sufficient(flavour_dict):
+    sys.exit()
   dirname = create_workspace(inputs['name'])
-  vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname, "Vagrantfile"))
-  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
+  vm.generate_vagrant_file([node[1] for node in host_instance], [], file_name=os.path.join(dirname, "Vagrantfile"))
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version, flavour_dict=flavour_dict)
   return dirname
 
 # depends on input parameters
@@ -534,11 +576,16 @@ def three_node(inputs):
 def three_node_vqfx(inputs):
   # validate input fields
   set_defaults_three_node(inputs)
+  # number of nodes
+  nodes_count = 3
+  # adding additional nodes as per input file
+  nodes_count = nodes_count + inputs['additional_nodes']
+  set_defaults(inputs)
   
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     'additional_nodes': And(int, lambda n: validate_tnv_additional_nodes(inputs, n)),
     Optional('dpdk_computes'): And(int, lambda n: validate_tnv_dpdk_computes(inputs, n)),
-    Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))),
+    Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, nodes_count, inputs['contrail_command'], inputs['internal_network'])),
     Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
     Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
     Optional('contrail_version'): str,
@@ -553,15 +600,11 @@ def three_node_vqfx(inputs):
     Optional('openstack_version'): str,
     Optional('contrail_deployer_branch'): And(str, lambda value: validate_deployer_branch(value))}).validate(inputs)
 
-  set_defaults(inputs)
+  format_management_ip(inputs)
 
   ctrl_data_ip = {}
   management_data = {}
   vboxnet_ip = {}
-  # number of nodes
-  nodes_count = 3
-  # adding additional nodes as per input file
-  nodes_count = nodes_count + inputs['additional_nodes']
   # setting up keys for all the nodes
   hosts = get_keys('node', nodes_count)
   # setting up keys for all the switches
@@ -603,7 +646,7 @@ def three_node_vqfx(inputs):
   
   for node in hosts:
     if node is not 'command':
-      host_instance.append(image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
+      host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
   # take out the last node instance make it controller and install contrail with this as host
   if 'contrail_version' in inputs.keys():
@@ -617,29 +660,32 @@ def three_node_vqfx(inputs):
     # allocate more memory for computes
     for compute_node in computes:
       print(compute_node)
-      compute_node.flavour = get_flavour(inputs, "large")
-    contrail_host.provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'kvrouter_id': "101", 'computes': computes_ip, 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
-    contrail_host.provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
+      compute_node[1].flavour = get_flavour(inputs, "large")
+    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'kvrouter_id': "101", 'computes': computes_ip, 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch']}})
+    contrail_host[1].provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     
     if inputs['contrail_command']:
-      host_instance.append(get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=management_ip(management_data, vboxnet_ip, 'command')))
+      host_instance.append(('command', get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=management_ip(management_data, vboxnet_ip, 'command'))))
   
   else:
     contrail_version = None
 
   for switch in switches:
     switch_instance.append(vm.VQFX(host_names[switch], ctrl_data_gateway, interfaces[switch]))
-
+  flavour_dict = get_flavour_from_host_instance(host_instance)
+  if not is_memory_sufficient(flavour_dict):
+    sys.exit()
   dirname = create_workspace(inputs['name'])
-  vm.generate_vagrant_file(host_instance, switch_instance, file_name=os.path.join(dirname, "Vagrantfile"))
-  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, switches=switches, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
+  vm.generate_vagrant_file([node[1] for node in host_instance], switch_instance, file_name=os.path.join(dirname, "Vagrantfile"))
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, flavour_dict=flavour_dict, switches=switches, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
   return dirname
-
-
 
 def devenv(inputs):
   # validate schema
+  if 'internal_network' not in inputs.keys():
+    inputs['internal_network'] = False
+
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
     'branch' : And(str, lambda value: validate_devenv_branch(value)),
     Optional('management_ip') : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip)),
@@ -649,7 +695,7 @@ def devenv(inputs):
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
     Optional('template') : str}).validate(inputs)
   
-  set_defaults(inputs)
+  format_management_ip(inputs)
   #single device
   # CENTOS(name, {management_ip}, [interfaces], [provision])
   interfaces = {}
@@ -661,19 +707,24 @@ def devenv(inputs):
     image = get_centos_image(inputs['branch'][1:])
   s1 = image(str(inputs['name']+"-node1"), get_flavour(inputs, "large"), management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
   # no switches one server
-
+  if not is_memory_sufficient({'node1': get_flavour(inputs, "large")}):
+    sys.exit()
   dirname = create_workspace(inputs['name'])
   vm.generate_vagrant_file([s1], [], file_name=os.path.join(dirname, "Vagrantfile"))
-  insert_topo_info(inputs['template'], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")}, management_ips=management_ip, vboxnet_ips=vboxnet_ip, ctrl_data_ips={}, contrail_version=None)
+  insert_topo_info(inputs['template'], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")}, flavour_dict={
+                   'node1': get_flavour(inputs, "large")}, management_ips=management_ip, vboxnet_ips=vboxnet_ip, ctrl_data_ips={}, contrail_version=None)
   return dirname
 
 def all_in_one(inputs):
   # validate schema
+
+  set_defaults(inputs)
+
   if 'dpdk_compute' not in inputs.keys():
     inputs['dpdk_compute'] = False
 
   Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
-    Optional('management_ip') : And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list))),
+    Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, 1, inputs['contrail_command'], inputs['internal_network'])),
     Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
     Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
     Optional('contrail_version'): str,
@@ -685,9 +736,9 @@ def all_in_one(inputs):
     Optional('registry') : And(str, lambda repo: validate_registry(repo)),
     Optional('openstack_version'): str,
     Optional('contrail_deployer_branch'): And(str, lambda value: validate_deployer_branch(value))}).validate(inputs)
-
-  set_defaults(inputs)
-
+  
+  format_management_ip(inputs)
+  
   hosts = []
   host_names = {}
   hosts = get_keys('node', 1)
@@ -717,7 +768,7 @@ def all_in_one(inputs):
 
   for node in hosts:
     if node is not 'command':
-      host_instance.append(image(name=host_names[node], flavour=get_flavour(inputs, "large"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}]))
+      host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "large"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
 
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
@@ -732,18 +783,87 @@ def all_in_one(inputs):
         vm_ip = vboxnet_ip['node1']
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
-    host_instance[0].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
+    host_instance[0][1].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
   # install contrail_command when contrail command ip_address is given
     if inputs['contrail_command']:
-      host_instance.append(get_contrail_command(inputs, name=host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=command_vm_ip))
+      host_instance.append(('command', get_contrail_command(inputs, name=host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=command_vm_ip)))
   else:
     contrail_version = None
+  flavour_dict = get_flavour_from_host_instance(host_instance)
+  if not is_memory_sufficient(flavour_dict):
+    sys.exit()
   dirname = create_workspace(inputs['name'])
-  vm.generate_vagrant_file(host_instance, [], file_name=os.path.join(dirname, "Vagrantfile"))
-  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
+  vm.generate_vagrant_file([node[1] for node in host_instance], [], file_name=os.path.join(dirname, "Vagrantfile"))
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, flavour_dict=flavour_dict, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
   return dirname
 
 ##################### subparser functions
+def mb_to_gb(value):
+  return int(value/1024)
+
+def clear_cache():
+  try:
+    op = subprocess.run('echo 3 > /proc/sys/vm/drop_caches',
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+  except subprocess.CalledProcessError as e:
+    print("Could not clear Cache")
+    print(e)
+    sys.exit()
+  if op.stderr:
+    print("Could not clear Cache")
+    sys.exit()
+
+def get_memory_details(units):
+  try:
+    command = ['free']
+    units = '-' + units
+    command.append(units)
+    op = subprocess.run(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  except subprocess.CalledProcessError as e:
+    print("Error running command \"free %s\""%(units))
+    print(e)
+    sys.exit()
+  else:
+    mem_details_str = re.findall(
+        r'(Mem:[\s\S]+)\nSwap', op.stdout.decode("UTF-8"))[0]
+    mem_list = re.split(r'\s+',mem_details_str)
+    mem_dict = {}
+    #mem_dict['total'] = int(mem_list[1])
+    #mem_dict['used'] = int(mem_list[2])
+    #mem_dict['free'] = int(mem_list[3])
+    mem_dict['available'] = int(mem_list[6])
+    return mem_dict
+
+def get_device_status(topology_name):
+  if not os.path.exists(info_file):
+    print("info file not found in path")
+    sys.exit()
+  with open(info_file, "r") as info_file_handler:
+    info = json.load(info_file_handler)
+  topology_name = args.topology_name
+  topo_info = info[topology_name]
+  hosts = topo_info['hosts']
+  switches = topo_info['switches']
+  dirname = topo_info['dirname']
+  try:
+    os.chdir(dirname)
+    op = subprocess.run(
+        ['vagrant', 'status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  except subprocess.CalledProcessError as e:
+    print("vagrant status failed")
+    print(e)
+    sys.exit()
+  else:
+    node_status = {}
+    for node in hosts:
+      node_host_name = topo_info['hostnames'][node]
+      node_status[node] = re.findall(r'{}[\s]+([\S\s]{{1,20}})[\s]+[(]virtualbox[)]'.format(node_host_name), op.stdout.decode("UTF-8"))[0]
+    for switch in switches:
+      switch_re_name = str(topo_info['hostnames'][switch] + '_re')
+      node_status[switch] = re.findall(
+          r'{}[\s]+([\S\s]{{1,20}})[\s]+[(]virtualbox[)]'.format(switch_re_name), op.stdout.decode("UTF-8"))[0]
+    return node_status
 
 def create(args):
   input_vars = parse_input_file(args.file_name)
@@ -780,11 +900,16 @@ def show(args):
     table.align["Values"] = "l"
     print(table)
     print("\n")
+  node_status = get_device_status(topology_name)
   for host in topo_info['hosts']:
     table = PrettyTable()
-    table.title = "NODE"
+    table.title = str("NODE" + " ({})".format(node_status[host]))
     table.field_names = ['Fields', 'Values']
     table.add_row(["hostname", topo_info['hostnames'][host]])
+    if 'flavour' in topo_info.keys():
+      node_flavour = topo_info['flavour'][host]
+      table.add_row(["vcpu", vm.flavour[node_flavour]['cpu']])
+      table.add_row(["memory", str(vm.flavour[node_flavour]['memory'])+' MB'])
     if host not in topo_info['management_data'].keys() or topo_info['management_data'][host] == {}:
       table.add_row(["public ip", None])
     else:
@@ -817,7 +942,7 @@ def show(args):
   if 'switches' in topo_info.keys() and len(topo_info['switches']) != 0:
     for switch in topo_info['switches']:
       table = PrettyTable()
-      table.title = "SWITCH"
+      table.title = str("SWITCH" + " ({})".format(node_status[switch]))
       table.field_names = ['Fields', 'Values']
       table.add_row(["RE name", str(topo_info['hostnames'][switch] + "_re")])
       table.add_row(["PFE name", str(topo_info['hostnames'][switch] + "_pfe")])
@@ -826,7 +951,68 @@ def show(args):
       print(table)
       print("\n")
 
+def show_resources(args):
+  clear_cache()
+  mem_details = get_memory_details('g')
+  mem_table = PrettyTable(['Memory', 'Value in (GB)'])
+  for key, value in mem_details.items():
+    mem_table.add_row([key,value])
+  print(mem_table)
+  if not os.path.exists(info_file):
+    print("info file not found in path")
+    sys.exit()
+  with open(info_file, "r") as info_file_handler:
+    info = json.load(info_file_handler)
+  table = PrettyTable(['Topology Name', 'Memory Used in (GB)'])
+  for name, item in info.items():
+    row = []
+    row.append(name)
+    total_memory = 0
+    if 'flavour' in item.keys():
+      for node in item['flavour']:
+        flavour = item['flavour'][node]
+        total_memory = total_memory + mb_to_gb(vm.flavour[flavour]['memory'])
+    else:
+      total_memory = None
+    row.append(total_memory)
+    table.add_row(row)
+  print(table)
+
+def poweron(args):
+  vagrant_up(topology_name=args.topology_name)
+
+def poweroff(args):
+  vagrant_halt_command = ["vagrant", "halt"]
+  topology_name = args.topology_name
+  with open(info_file, "r") as info_file_handler:
+    info = json.load(info_file_handler)
+  topo_info = info[topology_name]
+  dirname = topo_info['dirname']
+  try:
+    os.chdir(dirname)
+  except Exception as e:
+    print("cannot change directory to %s" % dirname)
+    print(e)
+    sys.exit()
+  else:
+    print(os.getcwd())
+    if not os.path.exists(os.path.join(os.getcwd(), "Vagrantfile")):
+      print("Vagrantfile does not exist in directory %s" % os.getcwd())
+      sys.exit()
+    try:
+      op = subprocess.run(vagrant_halt_command,
+                          stdout=sys.stdout, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+      print("Could not run vagrant halt command")
+      print(e)
+      sys.exit()
+    else:
+      print("Virtual machines are halted")
+     
 def list_vm(args):
+  if args.resources:
+    show_resources(args)
+    sys.exit()
   if not os.path.exists(info_file):
     print("info file not found in path")
     sys.exit()
@@ -923,7 +1109,6 @@ def rebuild(args):
     else:
       vagrant_up(dirname=dirname)
 
-
 def vagrant_up(dirname="", topology_name=""):
   vagrant_up_command = ["vagrant", "up"]
   if not dirname and not topology_name:
@@ -965,6 +1150,8 @@ if __name__ == '__main__':
   list_topology = subparser.add_parser("list", help="list topology details")
   show_topology = subparser.add_parser("show", help="show individual topology details")
   delete_topology = subparser.add_parser("destroy", help="delete topology")
+  poweron_topology = subparser.add_parser("poweron", help="power on all machines of given topology")
+  poweroff_topology = subparser.add_parser("poweroff", help="power off all machines of given topology")
   # create topology has mandatory file name as argument
   create_topology.add_argument("file_name", help="path to the config file", type=lambda x: validate_file(x))
 
@@ -973,6 +1160,16 @@ if __name__ == '__main__':
   show_topology.add_argument("topology_name", help="name of the topology", type=lambda x: validate_topology_name_deletion(x))
   # destroy vm 
   delete_topology.add_argument("topology_name", help="name of the topology to be destroyed", type=lambda x: validate_topology_name_deletion(x))
+
+  list_topology.add_argument("--resources", help="list available resources",
+                             action="store_true", default=False)
+
+  poweron_topology.add_argument("topology_name", help="name of the topology to be powered on",
+                                type=lambda x: validate_topology_name_deletion(x))
+
+  poweroff_topology.add_argument(
+      "topology_name", help="name of the topology to be powered off", type=lambda x: validate_topology_name_deletion(x))
+  
 
   args = parser.parse_args()
   #print(args)

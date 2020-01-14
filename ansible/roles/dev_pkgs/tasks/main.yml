@@ -34,10 +34,15 @@
     name: git-review
     state: latest
 
+- name: Install more-itertools 5.0.0 
+  pip:
+    name: more-itertools==5.0.0
+    state: present
+
 - name: Install tox
   pip:
     name: tox
-    state: latest
+    state: present
 
 - name: Install geventhttpclient
   pip:

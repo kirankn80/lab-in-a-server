@@ -20,6 +20,21 @@ This tool can be used to create pre-defined virtual topologies on a single serve
 
 ``` 
 
+## Upgrading the tool
+
+### 1. Pull the changes
+Pull the latest code in the directory
+
+```
+cd <lab-in-a-server directory>
+git pull
+```
+### 2. Run installer.sh
+
+```
+sudo ./installer.sh
+```
+
 ## Tool Usage
 
 ### 1. Creating Topologies
@@ -43,6 +58,15 @@ Lists all the topologies hosted on the machine, the templates and the working di
 #### output
 ![create_lab list output](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/list_topology.png)
 
+#### command
+
+```
+create_lab list --resources
+```
+This command lists the available memory and total memory present in the host machine and memory consumed by each topology.
+
+#### command
+
 ```
 create_lab show <topology_name> 
 ```
@@ -62,11 +86,29 @@ Deallocate the resources assigned to the virtual machines
 create_lab destroy <topology_name>
 ```
 ### 4. Rebuild Topologies
-Retry building entire topology with same resources in case of failure.
+Retry building entire topology with same resources in case of failure. This command is supposed to be used when topology bring up or contrail installation fails. In case of any changes made to input file used in the creation step, the topology is supposed to be destroyed and recreated.
 
+#### command
 ```
 create_lab rebuild <topology_name>
 ```
+
+### 5. Poweron Topologies
+This command is to be used to turn on the topology when it is powered off.
+
+#### command
+```
+create_lab poweron <topology_name>
+```
+
+### 6. Poweroff Topologies
+This command is to be used to shutdown the running topology.
+
+#### command
+```
+create_lab poweroff <topology_name>
+```
+
 
 ## Topologies Supported Currently
 
@@ -104,7 +146,7 @@ gateway: '10.204.220.62'
 ```
 
 #### 6. internal_network: <True/False> (optional)
-When True, assigns private ip address accessible from host machine, as management ip. It is "FALSE" by default.
+When True, assigns private ip address accessible from host machine, as management ip. It is *FALSE* by default.
 
 ### 1. Dev-env
 ![devenv setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/devenv.png)
@@ -128,8 +170,8 @@ The branch which is checked out for creating dev-env from [contrail-dev-env](htt
 
 input file - [aio.yml](https://github.com/kirankn80/lab-in-a-server/blob/version1/sample-input/aio.yml)
 ```
-template : all_in_one
-name : aio1
+template: all_in_one
+name: aio1
 internal_network: True
 contrail_version: 1910-3
 #management_ip:
@@ -140,7 +182,12 @@ registry: nodei40
 contrail_command: True
 ```
 #### 1. contrail_version: <contrail_version> (optional)
-The virtual machines are provisioned with given contrail version. 
+The virtual machines are provisioned with given contrail version. This value is supposed to be a string and should be within "" when the version tag has only numbers.
+
+```
+contrail_version: "1910.30"
+```
+
 
 #### 2. registry: <registry> (optional)
 The value for this field should be one among [cirepo, nodei40, hub]. The images are pulled from the registry specified. cirepo is the default registry.
@@ -182,6 +229,8 @@ The number of additional compute nodes to be provisioned. Zero by default.
 The number of dpdk computes to be provisioned. The default number is zero. The value for this field should always be <= additional_computes + 2.
 
 #### 4. kolla_external_vip_address: <kolla_evip> (optional)
+This field is an ip address in the management subnet. This field is to be specified when there are multiple controllers. This field need not be specified when the internal network field is True.
+The 8143 port is accessible on this interface.
 Horizon will be accessible on the management network by means of the kolla_external_vip_address.
 
 ### Note: The total number of nodes that can be connected to VQFX box is limited to 5. 

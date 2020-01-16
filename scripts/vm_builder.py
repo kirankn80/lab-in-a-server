@@ -216,6 +216,23 @@ def validate_fip_count(fip_list, expected_count, command, internal_network):
     return True
   return True
 
+
+def validate_if_contrail_image_is_present(tag, registry):
+  # Check if the given tab is present in vrouter-agent tags list in given repo
+  if registry == 'nodei40':
+    tag_list_uri = "http://nodei40.englab.juniper.net:5000/v2/contrail-vrouter-agent/tags/list"
+  if registry == 'hub':
+    tag_list_uri = "https://hub.juniper.net/v2/contrail-nightly/contrail-vrouter-agent/tags/list"
+  if registry == 'cirepo':
+    tag_list_uri = "http://ci-repo.englab.juniper.net:5010/v2/contrail-vrouter-agent/tags/list"
+  tags_list = requests.get(tag_list_uri).json().get('tags')
+  if tag in tags_list:
+    return True
+  else:
+    print(Fore.RED + "Note: " + Fore.WHITE +
+          "Tag {} is not present for contrail-vrouter-agent container in {}".format(tag, registry))
+    return False
+
 def is_memory_sufficient(falvour_dict):
   clear_cache()
   memory_details = get_memory_details('m')
@@ -491,7 +508,7 @@ def three_node(inputs):
     Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, nodes_count, inputs['contrail_command'], inputs['internal_network'])),
     Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
     Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
-    Optional('contrail_version'): str,
+    Optional('contrail_version'): And(str, lambda version: validate_if_contrail_image_is_present(version, inputs['registry'])),
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)), 
     Optional('contrail_command'): bool,
     Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
@@ -588,7 +605,7 @@ def three_node_vqfx(inputs):
     Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, nodes_count, inputs['contrail_command'], inputs['internal_network'])),
     Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
     Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
-    Optional('contrail_version'): str,
+    Optional('contrail_version'): And(str, lambda version: validate_if_contrail_image_is_present(version, inputs['registry'])),
     Optional('internal_network'): bool,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
     Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
@@ -727,7 +744,7 @@ def all_in_one(inputs):
     Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, 1, inputs['contrail_command'], inputs['internal_network'])),
     Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
     Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
-    Optional('contrail_version'): str,
+    Optional('contrail_version'): And(str, lambda version: validate_if_contrail_image_is_present(version, inputs['registry'])),
     Optional('internal_network') : bool,
     Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
     Optional('contrail_command'): bool,

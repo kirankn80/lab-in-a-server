@@ -5,6 +5,12 @@
     dest: /root/contrail-dev-env
     version: "{{ branch }}"
 
+- name: initialize repo with branch in contrail-dev-env/vm-dev-env/init.sh
+  replace:
+    path: /root/contrail-dev-env/vm-dev-env/init.sh
+    regexp: "repo init --no-clone-bundle -q -u https://github.com/Juniper/contrail-vnc"
+    replace: "repo init --no-clone-bundle -q -u https://github.com/Juniper/contrail-vnc -b {{ branch }}"
+
 - name: run startup.sh to install dev containers
   shell: cd /root/contrail-dev-env && (./startup.sh -b || true) && ./vm-dev-env/init.sh
 

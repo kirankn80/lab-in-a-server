@@ -166,10 +166,10 @@ def validate_tn_dpdk_computes(inputs, n):
   return False
 
 def validate_registry(repo):
-  if repo in ['cirepo', 'nodei40', 'hub']:
+  if repo in ['cirepo', 'nodei40', 'hub', 'bng-artifactory', 'svl-artifactory']:
     return True
   print(Fore.RED + "Note: " + Fore.WHITE + "The value for registry should be one among -")
-  print(['cirepo', 'nodei40', 'hub'])
+  print(['cirepo', 'nodei40', 'hub', 'bng-artifactory', 'svl-artifactory'])
   return False
 
 def validate_devenv_branch(input_branch):
@@ -221,10 +221,12 @@ def validate_if_contrail_image_is_present(tag, registry):
   # Check if the given tab is present in vrouter-agent tags list in given repo
   if registry == 'nodei40':
     tag_list_uri = "http://nodei40.englab.juniper.net:5000/v2/contrail-vrouter-agent/tags/list"
-  if registry == 'hub':
+  elif registry == 'hub':
     tag_list_uri = "https://hub.juniper.net/v2/contrail-nightly/contrail-vrouter-agent/tags/list"
-  if registry == 'cirepo':
+  elif registry == 'cirepo':
     tag_list_uri = "http://ci-repo.englab.juniper.net:5010/v2/contrail-vrouter-agent/tags/list"
+  else:
+    return True
   tags_list = requests.get(tag_list_uri).json().get('tags')
   if tag in tags_list:
     return True
@@ -252,7 +254,7 @@ def set_defaults(inputs):
     inputs['openstack_version'] = "queens"
 
   if 'registry' not in inputs.keys():
-    inputs['registry'] = "cirepo"
+    inputs['registry'] = "bng-artifactory"
 
   if 'contrail_command' not in inputs.keys():
     inputs['contrail_command'] = False

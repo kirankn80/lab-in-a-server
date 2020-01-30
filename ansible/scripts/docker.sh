@@ -7,6 +7,6 @@ yum install -y docker-ce-18.03.1.ce
 #yum install -y docker-ce
 systemctl enable docker
 systemctl start docker
-echo '{"insecure-registries": ["nodei40.englab.juniper.net:5000", "nodei40.englab.juniper.net:5010", "ci-repo.englab.juniper.net:5010"]}' >> /etc/docker/daemon.json
+echo '{"insecure-registries": ["nodei40.englab.juniper.net:5000", "nodei40.englab.juniper.net:5010", "ci-repo.englab.juniper.net:5010", "svl-artifactory.juniper.net", "bng-artifactory.juniper.net"]}' >> /etc/docker/daemon.json
 systemctl restart docker
 

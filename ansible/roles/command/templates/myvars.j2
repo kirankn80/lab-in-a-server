@@ -2,8 +2,12 @@
   {% set repository = "nodei40.englab.juniper.net:5000" %}
 {% elif registry == 'hub' %}
   {% set repository = "hub.juniper.net/contrail-nightly" %}
-{% else %}
+{% elif registry == 'cirepo' %}
   {% set repository = "ci-repo.englab.juniper.net:5010" %}
+{% elif registry == 'svl-artifactory' %}
+  {% set repository = "svl-artifactory.juniper.net/contrail-nightly" %}
+{% else %}
+  {% set repository = "bng-artifactory.juniper.net/contrail-nightly" %}
 {% endif %}
 export CCD_IMAGE={{ repository }}/contrail-command-deployer:{{ contrail_version }}
 export COMMAND_SERVERS_FILE=/tmp/command_servers.yml

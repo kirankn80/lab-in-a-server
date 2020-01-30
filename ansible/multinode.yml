@@ -9,4 +9,4 @@
     set_root_pass: 'contrail'
     instances_template: 'config_multinode_instances.j2'
     contrail_deployer_branch: 'master'
-    registry: 'cirepo'
+    registry: 'bng-artifactory'

@@ -5,4 +5,4 @@
   roles:
     - command
   vars:
-    registry: 'cirepo'
+    registry: 'bng-artifactory'

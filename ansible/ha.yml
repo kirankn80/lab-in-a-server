@@ -8,4 +8,4 @@
   vars:
     set_root_pass: 'contrail'
     instances_template: 'config_ha_instances.j2'
-    registry: 'cirepo'
+    registry: 'bng-artifactory'

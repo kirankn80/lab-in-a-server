@@ -7,8 +7,14 @@ global_configuration:
   REGISTRY_PRIVATE_INSECURE: False
   CONTAINER_REGISTRY_USERNAME: JNPR-Customer200
   CONTAINER_REGISTRY_PASSWORD: FSg0vLW^7oM#GZy8Ju*f
-{% else %}
+{% elif registry == 'cirepo' %}
   CONTAINER_REGISTRY: ci-repo.englab.juniper.net:5010
+  REGISTRY_PRIVATE_INSECURE: True
+{% elif registry == 'svl-artifactory' %}
+  CONTAINER_REGISTRY: svl-artifactory.juniper.net/contrail-nightly
+  REGISTRY_PRIVATE_INSECURE: True
+{% else %}
+  CONTAINER_REGISTRY: bng-artifactory.juniper.net/contrail-nightly
   REGISTRY_PRIVATE_INSECURE: True
 {% endif %}
 {% set controller_mip = [] %}

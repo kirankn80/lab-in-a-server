@@ -190,7 +190,7 @@ contrail_version: "1910.30"
 
 
 #### 2. registry: <registry> (optional)
-The value for this field should be one among [cirepo, nodei40, hub]. The images are pulled from the registry specified. cirepo is the default registry.
+The value for this field should be one among [bng-artifactory, svl-artifactory, cirepo, nodei40, hub]. The images are pulled from the registry specified. bng-artifactory is the default registry.
 
 #### 3. openstack_version: <openstack_version> (optional)
 Openstack version is "queens" by default.

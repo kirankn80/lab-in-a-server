@@ -11,6 +11,12 @@
     regexp: "repo init --no-clone-bundle -q -u https://github.com/Juniper/contrail-vnc"
     replace: "repo init --no-clone-bundle -q -u https://github.com/Juniper/contrail-vnc -b {{ branch }}"
 
+- name: comment out sudo yum -y update in contrail-dev-env/vm-dev-env/init.sh after cloning
+  replace:
+    path: /root/contrail-dev-env/vm-dev-env/init.sh
+    regexp: "sudo yum -y update"
+    replace: "# sudo yum -y update"
+
 - name: run startup.sh to install dev containers
   shell: cd /root/contrail-dev-env && (./startup.sh -b || true) && ./vm-dev-env/init.sh
 

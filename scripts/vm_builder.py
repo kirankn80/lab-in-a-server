@@ -244,7 +244,7 @@ def is_memory_sufficient(falvour_dict):
   if (memory_details['available'] - required_memory) > 10240:
     return True
   else:
-    print("Free memory is %d MB\n Memory required is %d MB\n Spinning up the toplogy will cause the host machine to have memory %d MB\n Aborting due to shoratge of memory \n"%(memory_details['available'], required_memory, (memory_details['available']-required_memory)))
+    print("Free memory is %d GB\n Memory required is %d GB\n Spinning up the topology will cause the host machine to have memory %d GB\n Aborting due to shortage of memory \n"%(mb_to_gb(memory_details['available']), mb_to_gb(required_memory), mb_to_gb((memory_details['available']-required_memory))))
     return False
 
 #########################set defaults

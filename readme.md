@@ -1,14 +1,17 @@
 # Lab-in-a-server
 
-This tool can be used to create pre-defined virtual topologies on a single server very easily. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant to provision the topologies with suitable contrail version. At the end, what the users get is a tool which make the life of developers and testers easy to creating and configuring contrail topologies very easy. This tool can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
+This tool can be used to create pre-defined virtual topologies on a single server very easily. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant, virtualbox and python to create virtual topologies, install contrail and provision the cluster. This tool makes the life of developers and testers very easy by doing all these using a simple yaml file. It can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
 
 ## Installation
+
+### 0. Pre-requisites
+1) A high-end Xeon server with about 40 cores, atleast 256GB RAM
+2) Ubuntu 18.04 OS
 
 ### 1. Clone the repository
 
 ```
   git clone https://github.com/kirankn80/lab-in-a-server.git
-  git checkout version1
 
 ``` 
 ### 2. Run installer.sh 

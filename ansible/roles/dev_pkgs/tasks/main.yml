@@ -19,6 +19,11 @@
     name: python-pip
     state: latest
 
+- name: Upgrade pip
+  pip:
+    name: pip
+    extra_args: --upgrade
+
 - name: Install tree
   yum:
     name: tree
@@ -44,9 +49,14 @@
     name: tox
     state: present
 
+- name: Install gevent
+  pip:
+    name: gevent==1.4.0
+    state: present
+
 - name: Install geventhttpclient
   pip:
-    name: geventhttpclient
+    name: geventhttpclient==1.3.1
     state: latest
 
 - name: Install cscope 
@@ -68,3 +78,52 @@
   yum:
     name: python36
     state: present
+
+- name: Install packages for vrouter
+  yum:
+    name:
+      - numactl-devel
+      - libpcap-devel
+      - userspace-rcu
+      - userspace-rcu-devel
+      - libnl-devel
+      - libnl
+      - libnl3-devel
+      - libxml2
+      - libxml2-devel
+      - libxml2-python
+      - libxslt
+      - libxslt-devel
+    state: present
+
+- name: Install future, lxml
+  pip:
+    name:
+      - lxml
+      - future
+    state: present
+
+- name: Install zip
+  pip:
+    name: zipp==0.5.2
+    state: present
+
+- name: Install configparser
+  pip:
+    name: configparser==4.0.2
+    state: present
+
+- name: ensure that 127.0.0.1 reverse resolves to only 'localhost'
+  lineinfile:
+    path: '/etc/hosts'
+    line: '127.0.0.1 localhost'
+    regexp: '^127\.0\.0\.1'
+  become: true
+
+- name: ensure that ::1 reverse resolves to only 'localhost'
+  lineinfile:
+    path: '/etc/hosts'
+    line: '::1 localhost'
+    regexp: '^::1'
+  become: true
+

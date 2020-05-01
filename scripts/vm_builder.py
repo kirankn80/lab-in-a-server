@@ -221,8 +221,6 @@ def validate_if_contrail_image_is_present(tag, registry):
   # Check if the given tab is present in vrouter-agent tags list in given repo
   if registry == 'nodei40':
     tag_list_uri = "http://nodei40.englab.juniper.net:5000/v2/contrail-vrouter-agent/tags/list"
-  elif registry == 'hub':
-    tag_list_uri = "https://hub.juniper.net/v2/contrail-nightly/contrail-vrouter-agent/tags/list"
   elif registry == 'cirepo':
     tag_list_uri = "http://ci-repo.englab.juniper.net:5010/v2/contrail-vrouter-agent/tags/list"
   else:

@@ -20,8 +20,36 @@
 - name: run startup.sh to install dev containers
   shell: cd /root/contrail-dev-env && (./startup.sh -b || true) && ./vm-dev-env/init.sh
 
+- name: Get kernel version of vm
+    shell: uname -r | awk -F.x86_64 '{print $1}'
+    register: response
+
+- set_fact:
+    req_version: "{{ response.stdout }}"
+
+- debug:
+    msg: "{{ req_version }}"
+
+- name: Change kernel version in spec files
+    lineinfile:
+      path: "{{ item.path }}"
+      regexp: "BuildRequires: kernel = *"
+      line: "BuildRequires: kernel = {{ req_version }}"
+    with_items:
+      - {path: '/root/contrail/tools/packages/rpm/contrail/contrail.spec'}
+      - {path: '/root/contrail/tools/packages/rpm/contrail-vrouter-dpdk/contrail-vrouter-dpdk.spec'}
+
+- name: Change kernel-devel version in spec files
+    lineinfile:
+      path: "{{ item.path }}"
+      regexp: "BuildRequires: kernel-devel = *"
+      line: "BuildRequires: kernel-devel = {{ req_version }}"
+    with_items:
+      - {path: '/root/contrail/tools/packages/rpm/contrail/contrail.spec'}
+      - {path: '/root/contrail/tools/packages/rpm/contrail-vrouter-dpdk/contrail-vrouter-dpdk.spec'}
+
 - name: initialize dev env
-  shell: export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && export LC_TYPE=en_US.UTF-8 && cd /root/contrail && python3 third_party/fetch_packages.py
+  shell: export LC_ALL=en_US.UTF-8 && export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && export LC_TYPE=en_US.UTF-8 && cd /root/contrail && make -f tools/packages/Makefile dep && python3 third_party/fetch_packages.py
 
 - name: Ensure env variables present in .bashrc
   blockinfile:

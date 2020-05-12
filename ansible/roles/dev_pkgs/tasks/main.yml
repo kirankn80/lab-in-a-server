@@ -113,6 +113,11 @@
     name: configparser==4.0.2
     state: present
 
+- name: Install virtualenv
+  pip:
+    name: virtualenv==16.1.0
+    state: present
+
 - name: ensure that 127.0.0.1 reverse resolves to only 'localhost'
   lineinfile:
     path: '/etc/hosts'

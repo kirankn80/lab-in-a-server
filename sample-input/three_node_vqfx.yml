@@ -5,7 +5,7 @@ additional_compute: 1
 #management_ip: ['10.204.220.31', '10.204.220.32', '10.204.220.33', '10.204.220.30', '10.204.220.34']
 #netmask: 255.255.255.192
 #gateway: 10.204.220.62
-contrail_version: 1910-3
-registry: cirepo
+contrail_version: "2005.61"
+registry: svl-artifactory
 dpdk_computes: 1
 internal_network: True

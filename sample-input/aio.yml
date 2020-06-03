@@ -1,12 +1,12 @@
 template : all_in_one
 name : aio1
 internal_network: True
-contrail_version: 1910-3
+contrail_version: "2005.61"
 #management_ip: ['10.204.220.30', '10.204.220.31']
 #netmask: 255.255.255.192
 #gateway: 10.204.220.62
 openstack_version: queens
-registry: nodei40
+registry: bng-artifactory
 contrail_command: True
 
  

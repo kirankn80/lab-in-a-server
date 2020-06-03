@@ -176,12 +176,12 @@ input file - [aio.yml](https://github.com/kirankn80/lab-in-a-server/blob/version
 template: all_in_one
 name: aio1
 internal_network: True
-contrail_version: 1910-3
+contrail_version: "2005.61"
 #management_ip:
 #netmask:
 #gateway
 openstack_version: queens
-registry: nodei40
+registry: bng-artifactory
 contrail_command: True
 ```
 #### 1. contrail_version: <contrail_version> (optional)
@@ -213,8 +213,8 @@ name : tnv-f
 additional_control: 1
 additional_compute: 1
 dpdk_computes: 1
-contrail_version: 1910-3
-registry: nodei40
+contrail_version: "2005.61"
+registry: bng-artifactory
 management_ip: ['10.204.220.31', '10.204.220.32', '10.204.220.33', '10.204.220.30', '10.204.220.34', '10.204.220.35']
 netmask: 255.255.255.192
 gateway: 10.204.220.62
@@ -249,10 +249,10 @@ name : tn-f
 additional_compute: 1
 additional_controller: 1
 internal_network: True
-contrail_version: 1910-3
+contrail_version: "2005.61"
 openstack_version: queens
 dpdk_computes: 1
-registry: nodei40
+registry: bng-artifactory
 contrail_command: True
 ```
 ## Note:

@@ -7,9 +7,9 @@ dpdk_computes: 1
 #netmask: 255.255.255.192
 #gateway: 10.204.220.62
 internal_network: True
-contrail_version: 1910-3
+contrail_version: "2005.61"
 openstack_version: queens
-registry: nodei40
+registry: bng-artifactory
 contrail_command: True
 
 

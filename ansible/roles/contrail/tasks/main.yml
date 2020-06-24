@@ -6,7 +6,7 @@
 
 - name: Clone contrail-ansible-deployer
   git:
-    repo: 'https://github.com/Juniper/contrail-ansible-deployer.git'
+    repo: "{{ contrail_deployer_branch | get_deployer_repo }}"
     dest: /root/contrail-ansible-deployer
     force: yes
     version: "{{ contrail_deployer_branch }}"

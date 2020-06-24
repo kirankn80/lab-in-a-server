@@ -186,8 +186,10 @@ def validate_devenv_branch(input_branch):
     return False
 
 def validate_deployer_branch(input_branch):
-  git_list_branch_api = "https://api.github.com/repos/Juniper/contrail-ansible-deployer/branches"
-  branches_info = requests.get(git_list_branch_api).json()
+  contrail_list_branch_api = "https://api.github.com/repos/Juniper/contrail-ansible-deployer/branches"
+  tf_list_branch_api = "https://api.github.com/repos/tungstenfabric/tf-ansible-deployer/branches"
+  branches_info = requests.get(contrail_list_branch_api).json(
+  ) + requests.get(tf_list_branch_api).json()
   all_branches = []
   for branch in branches_info:
     all_branches.append(branch['name'])
@@ -258,7 +260,7 @@ def set_defaults(inputs):
     inputs['contrail_command'] = False
 
   if 'internal_network' not in inputs.keys():
-    inputs['internal_network'] = False
+    inputs['internal_network'] = True
  
 def format_management_ip(inputs):
   if 'management_ip' in inputs.keys() and ('netmask' not in inputs.keys() or 'gateway' not in inputs.keys()):

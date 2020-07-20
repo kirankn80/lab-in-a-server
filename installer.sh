@@ -78,6 +78,7 @@ sudo apt-get install -y python3-pip
 pip3 install -U requests colorama schema pyyaml argparse prettytable pTable
 pip install jxmlease
 pip install --ignore-installed junos-eznc
+pip install requests==2.18.4
 
 MACHINE_DIR="`(cd ~ && pwd)`"
 if [ -z "$MACHINE_DIR" ] ; then

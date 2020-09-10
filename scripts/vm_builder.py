@@ -173,8 +173,10 @@ def validate_registry(repo):
   return False
 
 def validate_devenv_branch(input_branch):
-  git_list_branch_api = "https://api.github.com/repos/Juniper/contrail-dev-env/branches"
-  branches_info = requests.get(git_list_branch_api).json()
+  contrail_list_branch_api = "https://api.github.com/repos/Juniper/contrail-vnc/branches?per_page=1000"
+  tf_list_branch_api = "https://api.github.com/repos/tungstenfabric/tf-vnc/branches?per_page=1000"
+  branches_info = requests.get(contrail_list_branch_api).json(
+  ) + requests.get(tf_list_branch_api).json()
   all_branches = []
   for branch in branches_info:
     all_branches.append(branch['name'])
@@ -328,14 +330,14 @@ def get_contrail_deployer_branch(contrail_version):
   print("No matching version found \n checking out {} branch in contrail ansible deployer".format("master"))
   return("master", "master")
 
-def check_for_devenv_vm_init_script(devbranch):
-  git_vm_script_path = "https://raw.githubusercontent.com/Juniper/contrail-dev-env/BRANCH/vm-dev-env/init.sh"
-  git_vm_script_path = git_vm_script_path.replace("BRANCH", devbranch)
-  response = requests.get(git_vm_script_path)
-  if response.status_code == 404:
-    return "dev-lite-container.yml"
-  else:
-    return "dev-lite.yml"
+#def check_for_devenv_vm_init_script(devbranch):
+#  git_vm_script_path = "https://raw.githubusercontent.com/Juniper/contrail-dev-env/BRANCH/vm-dev-env/init.sh"
+#  git_vm_script_path = git_vm_script_path.replace("BRANCH", devbranch)
+#  response = requests.get(git_vm_script_path)
+#  if response.status_code == 404:
+#    return "dev-lite-container.yml"
+#  else:
+#   return "dev-lite.yml"
 
 ################## network address allocation functions
 
@@ -703,38 +705,52 @@ def three_node_vqfx(inputs):
   insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, flavour_dict=flavour_dict, switches=switches, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
   return dirname
 
+
 def devenv(inputs):
   # validate schema
   if 'internal_network' not in inputs.keys():
     inputs['internal_network'] = False
 
-  Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
-    'branch' : And(str, lambda value: validate_devenv_branch(value)),
-    Optional('management_ip') : And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip)),
-    Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
-    Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
-    Optional('internal_network') : bool,
-    Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
-    Optional('template') : str}).validate(inputs)
-  
+  Schema({'name': And(lambda value: validate_name(value),
+                      lambda value: validate_topology_name_creation(value)),
+          'branch': And(str, lambda value: validate_devenv_branch(value)),
+          Optional('management_ip'): And(str, lambda ip: Regex(
+              r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip),
+      lambda ip: validate_managementip(ip)),
+      Optional('netmask'): And(str, lambda netmask: Regex(
+          r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
+      Optional('gateway'): And(str, lambda gateway: Regex(
+          r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
+      Optional('internal_network'): bool,
+      Optional('flavour'): And(str, lambda flavour: validate_flavour(flavour)),
+      Optional('template'): str}).validate(inputs)
+
   format_management_ip(inputs)
   #single device
   # CENTOS(name, {management_ip}, [interfaces], [provision])
   interfaces = {}
   interfaces['node1'] = []
-  management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
+  management_ip, vboxnet_ip, interfaces = set_management_ips(['node1'], inputs['management_ip'],
+                                                             interfaces, {}, inputs['internal_network'])
   print(management_ip, interfaces)
   image = vm.CENTOS77
   if inputs['branch'][0] == 'R':
     image = get_centos_image(inputs['branch'][1:])
-  s1 = image(str(inputs['name']+"-node1"), get_flavour(inputs, "large"), management_ip['node1'], interfaces['node1'], [{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, check_for_devenv_vm_init_script(inputs['branch']))), 'variables': {'branch': inputs['branch']}}])
+  s1 = image(str(inputs['name']+"-node1"), get_flavour(inputs, "tiny"),
+             management_ip['node1'], interfaces['node1'],
+             [{'method': 'ansible', 'path': "\"%s\"" % (os.path.join(ansible_scripts_path, 'dev-lite.yml')),
+              'variables': {'branch': inputs['branch']}},
+             {'method': 'file', 'source': "\"%s\"" % (os.path.join(ansible_scripts_path, "scripts/dev_init.sh")),
+              'destination': "\"/tmp/dev_init.sh\""},
+             {'method': 'shell', 'inline': "\"/bin/sh /tmp/dev_init.sh\""}])
   # no switches one server
-  if not is_memory_sufficient({'node1': get_flavour(inputs, "large")}):
+  if not is_memory_sufficient({'node1': get_flavour(inputs, "tiny")}):
     sys.exit()
-  dirname = create_workspace(inputs['name'])
-  vm.generate_vagrant_file([s1], [], file_name=os.path.join(dirname, "Vagrantfile"))
-  insert_topo_info(inputs['template'], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")}, flavour_dict={
-                   'node1': get_flavour(inputs, "large")}, management_ips=management_ip, vboxnet_ips=vboxnet_ip, ctrl_data_ips={}, contrail_version=None)
+  dirname=create_workspace(inputs['name'])
+  vm.generate_vagrant_file([s1], [], file_name = os.path.join(dirname, "Vagrantfile"))
+  insert_topo_info(inputs['template'], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")},
+                    flavour_dict = {'node1': get_flavour(inputs, "tiny")}, management_ips = management_ip,
+                    vboxnet_ips = vboxnet_ip, ctrl_data_ips = {}, contrail_version = inputs['branch'])
   return dirname
 
 def all_in_one(inputs):
@@ -1042,7 +1058,7 @@ def list_vm(args):
     sys.exit()
   with open(info_file, "r") as info_file_handler:
     info = json.load(info_file_handler)
-  table = PrettyTable(['Topology Name', 'Template', 'Contrail Version', 'Working Directory'])
+  table = PrettyTable(['Topology Name', 'Template', 'Contrail Version/DevBranch', 'Working Directory'])
   for name, item in info.items():
     row = []
     row.append(name)

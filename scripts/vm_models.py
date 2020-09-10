@@ -8,7 +8,8 @@ par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 flavour = {
   'large': {'memory': 32768, 'cpu': 4},
   'medium': {'memory': 32768, 'cpu': 4},
-  'small': {'memory': 8192, 'cpu': 2}
+  'small': {'memory': 8192, 'cpu': 2},
+  'tiny': {'memory': 8192, 'cpu': 2}
 }
 
 

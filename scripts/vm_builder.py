@@ -310,8 +310,11 @@ def get_centos_image(release):
 ################## api functions
 
 def get_contrail_deployer_branch(contrail_version):
-  git_list_branch_api = "https://api.github.com/repos/Juniper/contrail-ansible-deployer/branches"
-  branches_info = requests.get(git_list_branch_api).json()
+  contrail_list_branch_api = "https://api.github.com/repos/Juniper/contrail-ansible-deployer/branches"
+  tf_list_branch_api = "https://api.github.com/repos/tungstenfabric/tf-ansible-deployer/branches"
+  branches_info = requests.get(contrail_list_branch_api).json(
+  ) + requests.get(tf_list_branch_api).json()
+  branches_info.reverse()
   all_branches = {}
   for branch in branches_info:
     branch_name = branch['name']

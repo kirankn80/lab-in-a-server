@@ -126,8 +126,7 @@ class Server(ABC):
           vm_domain: \"englab.juniper.net jnpr.net juniper.net\",
           ntp_server: \"ntp.juniper.net\"
         }
-      end
-      srv.vm.provision \"shell\", path: \"%s\""""%(os.path.join(ansible_scripts_path, 'network.yml'), self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'], os.path.join(ansible_scripts_path, 'scripts/set-centos-gw.sh'))
+      end""" %(os.path.join(ansible_scripts_path, 'network.yml'), self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'])
     return config
 
 class CENTOS75(Server):

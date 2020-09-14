@@ -42,6 +42,7 @@ instances:
       openstack_monitoring:
       openstack_compute:
 contrail_configuration:
+  LOG_LEVEL: SYS_DEBUG
   CONTRAIL_VERSION: {{ contrail_version }}
   CLOUD_ORCHESTRATOR: openstack
   RABBITMQ_NODE_PORT: 5673
@@ -51,6 +52,8 @@ contrail_configuration:
   KEYSTONE_AUTH_URL_VERSION: /v3
 kolla_config:
   kolla_globals:
+    docker_namespace: kolla
+    docker_registry: 10.84.5.85:5010
     enable_haproxy: no
   kolla_passwords:
     keystone_admin_password: contrail123

@@ -4,6 +4,7 @@
   gather_facts: no
   become: True
   roles:
+    - base_pkgs
     - contrail
   vars:
     set_root_pass: 'contrail'

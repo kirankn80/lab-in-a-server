@@ -43,7 +43,7 @@ sudo ansible-galaxy install Juniper.junos
 
 pip install --upgrade pip
 sudo apt-get update
-pip install jxmlease
+pip install jxmlease future==0.18.2
 pip install --ignore-installed junos-eznc
 
 

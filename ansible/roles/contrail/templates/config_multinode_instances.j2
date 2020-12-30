@@ -64,7 +64,7 @@ instances:
         PHYSICAL_INTERFACE: eth2
         CPU_CORE_MASK: "0xff"
         DPDK_UIO_DRIVER: uio_pci_generic
-        HUGE_PAGES: {{ huge_pages }}
+        HUGE_PAGES: 32000
         AGENT_MODE: dpdk
 {% endfor %}
 {% for i in range(dpdk_computes, computes|length) %}
@@ -111,5 +111,5 @@ kolla_config:
   customize:
     nova.conf: |
       [libvirt]
-      virt_type=kvm
+      virt_type=qemu
       cpu_mode=none

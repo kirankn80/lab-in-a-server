@@ -6,10 +6,11 @@ ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
 par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 
 flavour = {
-  'large': {'memory': 32768, 'cpu': 4},
-  'medium': {'memory': 32768, 'cpu': 4},
-  'small': {'memory': 8192, 'cpu': 2},
-  'tiny': {'memory': 8192, 'cpu': 2}
+  'xlarge': {'memory': 65536, 'cpu': 8, 'hugepages': '64000'},
+  'large': {'memory': 32768, 'cpu': 4, 'hugepages': '32000'},
+  'medium': {'memory': 32768, 'cpu': 4, 'hugepages': '32000'},
+  'small': {'memory': 8192, 'cpu': 2, 'hugepages': '16000'},
+  'tiny': {'memory': 8192, 'cpu': 2, 'hugepages': '16000'}
 }
 
 
@@ -42,6 +43,7 @@ class Server(ABC):
       srv.vm.provider "virtualbox" do |v|
         v.memory = {}
         v.cpus = {}
+        v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
       end""".format(self.name, box, self.name, flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])
     return config
 

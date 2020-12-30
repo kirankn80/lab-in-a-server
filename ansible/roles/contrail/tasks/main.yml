@@ -1,4 +1,5 @@
 ---
+
 - name: Install python-requests
   yum:
     name: python-requests
@@ -27,4 +28,10 @@
     src: "{{ instances_template }}"
     dest: "{{ vagrant_root }}/config/instances.yaml"
   delegate_to: localhost
+
+- name: Install kvm for DPDK vrouter
+  shell:  modprobe -r kvm_intel
+
+- name: Enable flags for nested virtualization
+  shell: modprobe kvm_intel nested=1 enable_shadow_vmcs=1 enable_apicv=1 ept=1
 

@@ -15,7 +15,8 @@ apt-get install -y wget git bridge-utils python python-pip tmux apt-transport-ht
 
 # VirtualBox Installation
 # Add following line in "/etc/apt/sources.list"
-if [ `which virtualbox | wc -l` -eq  "0" ]; then
+dpkg -s virtualbox-6.1 &> /dev/null
+if [ `which virtualbox | wc -l` -eq  "0" ] || ([ $? -ne 0 ] && [ `vboxmanage list runningvms | wc -l` -eq "0" ]); then
 wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
 wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
 sudo add-apt-repository "deb http://download.virtualbox.org/virtualbox/debian `lsb_release -cs` contrib"
@@ -24,8 +25,8 @@ sudo apt-get -y install virtualbox-6.1
 fi
 
 ### Vagrant install
-# wget https://releases.hashicorp.com/vagrant/2.1.1/vagrant_2.1.1_x86_64.deb
-if [ `which vagrant | wc -l` -eq  "0" ]; then
+Version="`vagrant --version`"
+if [ `which vagrant | wc -l` -eq  "0" ] || ([ "$Version" != *"2.2.7"* ] && [ `vboxmanage list runningvms | wc -l` -eq "0" ]); then
 wget https://releases.hashicorp.com/vagrant/2.2.7/vagrant_2.2.7_x86_64.deb
 dpkg -i vagrant_2.2.7_x86_64.deb
 fi

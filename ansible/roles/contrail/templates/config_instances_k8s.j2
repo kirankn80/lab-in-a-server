@@ -1,0 +1,50 @@
+global_configuration:
+{% if registry == 'nodei40' %}
+  CONTAINER_REGISTRY: nodei40.englab.juniper.net:5000
+  REGISTRY_PRIVATE_INSECURE: True
+{% elif registry == 'hub' %}
+  CONTAINER_REGISTRY: hub.juniper.net/contrail-nightly
+  REGISTRY_PRIVATE_INSECURE: False
+  CONTAINER_REGISTRY_USERNAME: JNPR-Customer200
+  CONTAINER_REGISTRY_PASSWORD: FSg0vLW^7oM#GZy8Ju*f
+{% elif registry == 'cirepo' %}
+  CONTAINER_REGISTRY: ci-repo.englab.juniper.net:5010
+  REGISTRY_PRIVATE_INSECURE: True
+{% elif registry == 'svl-artifactory' %}
+  CONTAINER_REGISTRY: svl-artifactory.juniper.net/contrail-nightly
+  REGISTRY_PRIVATE_INSECURE: True
+{% else %}
+  CONTAINER_REGISTRY: bng-artifactory.juniper.net/contrail-nightly
+  REGISTRY_PRIVATE_INSECURE: True
+{% endif %}
+provider_config:
+  bms:
+    ssh_user: root
+    ssh_pwd: c0ntrail123
+    ntpserver: {{ ntp_server }}
+    domainsuffix: local
+instances:
+  {{ vm_name }}:
+    ip: {{ vm_ip }}
+    provider: bms
+    roles:
+      #config:
+      #config_database:
+      #control:
+      #webui:
+      #analytics:
+      #analytics_database:
+      #vrouter:
+        #VROUTER_GATEWAY: {{ vm_gw }}
+      k8s_master:
+      kubemanager:
+      k8s_node:
+contrail_configuration:
+  KUBERNETES_PUBLIC_FIP_POOL: {'project': 'k8s-default', 'domain': 'default-domain', 'name': '__fip_pool_public__', 'network': '__public__'}
+  LOG_LEVEL: SYS_DEBUG
+  CONTRAIL_VERSION: {{ contrail_version }}
+  CLOUD_ORCHESTRATOR: kubernetes
+  RABBITMQ_NODE_PORT: 5673
+  VROUTER_GATEWAY: {{ vm_gw }}
+  KUBERNETES_API_NODES: {{ vm_ip }}
+  KUBERNETES_API_SERVER: {{ vm_ip }}

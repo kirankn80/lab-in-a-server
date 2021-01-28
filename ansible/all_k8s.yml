@@ -1,0 +1,13 @@
+---
+- name: Provision all in one vm
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - base_pkgs
+    - contrail
+  vars:
+    set_root_pass: 'contrail'
+    instances_template: 'config_instances_k8s.j2'
+    registry: 'bng-artifactory'
+    contrail_deployer_branch: 'master'

@@ -126,7 +126,7 @@ def validate_topology_name_deletion(name):
   return name
 
 def parse_input_file(file_name):
-  valid_templates = ['devenv', 'all_in_one', 'three_node_vqfx', 'three_node']
+  valid_templates = ['devenv', 'all_in_one', 'three_node_vqfx', 'three_node', 'three_node_k8s', 'all_in_one_k8s']
   inputs = Schema({'template' : And(str, lambda name: name in valid_templates), Optional(str) : object}).validate(yaml.load(open(file_name, "r"), Loader=yaml.FullLoader))
   return inputs
 
@@ -705,6 +705,97 @@ def three_node_vqfx(inputs):
   insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, flavour_dict=flavour_dict, switches=switches, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
   return dirname
 
+def three_node_k8s(inputs):
+  # validate input fields
+  set_defaults_three_node(inputs)
+  nodes_count = 3
+  nodes_count = nodes_count + inputs['additional_nodes']
+  set_defaults(inputs)
+
+  Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
+    'additional_nodes': And(int, int),
+    Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, nodes_count, inputs['contrail_command'], inputs['internal_network'])),
+    Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
+    Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
+    Optional('contrail_version'): And(str, lambda version: validate_if_contrail_image_is_present(version, inputs['registry'])),
+    Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
+    Optional('contrail_command'): bool,
+    #Optional('kolla_external_vip_address'): And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip)),
+    Optional('additional_compute') : int,
+    Optional('additional_control'): int,
+    Optional('dpdk_computes'): And(int, lambda n: validate_tn_dpdk_computes(inputs,n)),
+    Optional('registry'): And(str, lambda repo: validate_registry(repo)),
+    Optional('openstack_version'): str,
+    Optional('contrail_deployer_branch'): And(str, lambda value: validate_deployer_branch(value)),
+    Optional('internal_network'): bool,
+    Optional('template'): str}).validate(inputs)
+
+  format_management_ip(inputs)
+  hosts = get_keys('node', nodes_count)
+  interfaces = {}
+  if inputs['contrail_command']:
+    hosts.append('command')
+
+  management_data, vboxnet_ip, interfaces = set_management_ips(hosts[::-1], inputs['management_ip'], interfaces, {}, inputs['internal_network'])
+  # add contrail_command_to_hosts
+  if 'kolla_external_vip_address' in inputs.keys():
+    kolla_evip = inputs['kolla_external_vip_address']
+  else:
+    kolla_evip = ""
+    if vboxnet_ip != {}:
+      kolla_evip_dict, _ = set_vboxnet_ips(['kolla-evip'], {}, {}, change_subnet=False)
+      kolla_evip = kolla_evip_dict['kolla-evip']
+
+  # control_data_ip is hostonly ip
+  ctrl_data_ip, interfaces = set_vboxnet_ips(hosts, interfaces, {}, change_subnet=True)
+  ctrl_data_gateway = host_vboxnet_ip[-1]
+
+  #kolla_ivip_dict, interface_dummy = set_vboxnet_ips(['kolla-ivip'], {}, {}, change_subnet=False)
+  #kolla_ivip = kolla_ivip_dict['kolla-ivip']
+
+  host_names = get_host_names(inputs['name'], {}, hosts)
+  host_instance = []
+  computes_controllers = []
+  release = "undefined"
+
+  if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
+    if 'contrail_deployer_branch' not in inputs.keys():
+      release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
+  image = get_centos_image(release)
+
+  for node in hosts:
+    if node is not 'command':
+      host_instance.append((node, image(host_names[node], get_flavour(inputs, "medium"), management_data[node], interfaces[node], [
+                           {'method': 'ansible', 'path': "\"%s\"" % (os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}])))
+      computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
+
+  if 'contrail_version' in inputs.keys():
+    primary = computes_controllers.pop()
+    contrail_host = host_instance.pop()
+    computes = host_instance[:(inputs['additional_compute']+2)]
+    computes_ip = computes_controllers[:(inputs['additional_compute']+2)]
+    #controls = host_instance[(inputs['additional_compute']+2):]
+    #controls_ip = computes_controllers[(inputs['additional_compute']+2):]
+  # increase computes size
+    for compute_node in computes:
+      print(compute_node)
+      compute_node[1].flavour = get_flavour(inputs, "large")
+    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode_k8s.yml')), 'variables':{'primary':primary, 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch'], 'huge_pages':vm.flavour[get_flavour(inputs, "large")]['hugepages'], 'k8s_version':'1.19.3'}})
+    contrail_host[1].provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all_k8s.sh")), 'destination': "\"/tmp/all_k8s.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all_k8s.sh\"" }])
+    host_instance.append(contrail_host)
+
+    if inputs['contrail_command']:
+      host_instance.append(('command', get_contrail_command(inputs, name = host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=management_ip(management_data, vboxnet_ip, 'command'))))
+  else:
+    contrail_version = None
+  flavour_dict = get_flavour_from_host_instance(host_instance)
+  if not is_memory_sufficient(flavour_dict):
+    sys.exit()
+  dirname = create_workspace(inputs['name'])
+  vm.generate_vagrant_file([node[1] for node in host_instance], [], file_name=os.path.join(dirname, "Vagrantfile"))
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version, flavour_dict=flavour_dict)
+  return dirname
 
 def devenv(inputs):
   # validate schema
@@ -824,6 +915,90 @@ def all_in_one(inputs):
     if 'contrail_deployer_branch' not in inputs.keys():
       release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
     host_instance[0][1].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all.yml')), 'variables': {'vm_ip': vm_ip, 'vm_gw': vm_gw, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'openstack_version': inputs['openstack_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\""}])
+  # install contrail_command when contrail command ip_address is given
+    if inputs['contrail_command']:
+      host_instance.append(('command', get_contrail_command(inputs, name=host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=command_vm_ip)))
+  else:
+    contrail_version = None
+  flavour_dict = get_flavour_from_host_instance(host_instance)
+  if not is_memory_sufficient(flavour_dict):
+    sys.exit()
+  dirname = create_workspace(inputs['name'])
+  vm.generate_vagrant_file([node[1] for node in host_instance], [], file_name=os.path.join(dirname, "Vagrantfile"))
+  insert_topo_info(inputs['template'], inputs['name'], hosts, host_names, flavour_dict=flavour_dict, management_ips=management_data, vboxnet_ips=vboxnet_ip, ctrl_data_ips=ctrl_data_ip, contrail_version=contrail_version)
+  return dirname
+
+def all_in_one_k8s(inputs):
+  # validate schema
+
+  set_defaults(inputs)
+
+  if 'dpdk_compute' not in inputs.keys():
+    inputs['dpdk_compute'] = False
+
+  Schema({'name' : And(lambda value: validate_name(value), lambda value: validate_topology_name_creation(value)),
+    Optional('management_ip'): And([And(str, lambda ip: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(ip), lambda ip: validate_managementip(ip))], lambda ip_list: len(ip_list) == len(set(ip_list)), lambda ip_list: validate_fip_count(ip_list, 1, inputs['contrail_command'], inputs['internal_network'])),
+    Optional('netmask') : And(str, lambda netmask: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(netmask)),
+    Optional('gateway') : And(str, lambda gateway: Regex(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$').validate(gateway)),
+    Optional('contrail_version'): And(str, lambda version: validate_if_contrail_image_is_present(version, inputs['registry'])),
+    Optional('internal_network') : bool,
+    Optional('flavour') : And(str, lambda flavour: validate_flavour(flavour)),
+    Optional('contrail_command'): bool,
+    Optional('template') : str,
+    Optional('openstack_version'): str,
+    Optional('dpdk_compute') : bool,
+    Optional('registry') : And(str, lambda repo: validate_registry(repo)),
+    Optional('contrail_deployer_branch'): And(str, lambda value: validate_deployer_branch(value))}).validate(inputs)
+
+  format_management_ip(inputs)
+
+  hosts = []
+  host_names = {}
+  hosts = get_keys('node', 1)
+
+  if inputs['contrail_command']:
+    hosts.append('command')
+
+  host_names = get_host_names(inputs['name'], host_names, hosts)
+
+  host_instance = []
+  # provisioning for contrail role
+  #vm_ip : inputs['management_ip']['ip']
+  #ntp_server :
+  #contrail_version :
+  #vagrant_root :
+  interfaces = {}
+  management_data, vboxnet_ip, interfaces = set_management_ips(hosts, inputs['management_ip'], interfaces, {}, inputs['internal_network'])
+  ctrl_data_ip = {}
+
+  release = "undefined"
+
+  if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
+    if 'contrail_deployer_branch' not in inputs.keys():
+      release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
+  image = get_centos_image(release)
+
+  for node in hosts:
+    if node is not 'command':
+      host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "large"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
+
+  if 'contrail_version' in inputs.keys():
+    contrail_version = inputs['contrail_version']
+    if inputs['contrail_command']:
+      if management_data['command'] != {}:
+        command_vm_ip = management_data['command']['ip']
+      if 'command' in vboxnet_ip.keys():
+        command_vm_ip = vboxnet_ip['command']
+    if management_data['node1'] != {}:
+        vm_ip = management_data['node1']['ip']
+        vm_gw = management_data['node1']['gateway']
+    if 'node1' in vboxnet_ip.keys():
+        vm_ip = vboxnet_ip['node1']
+        vm_gw = host_vboxnet_ip[-1]
+    if 'contrail_deployer_branch' not in inputs.keys():
+      release, inputs['contrail_deployer_branch'] = get_contrail_deployer_branch(inputs['contrail_version'])
+    host_instance[0][1].provision.extend([{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'all_k8s.yml')), 'variables': {'vm_ip': vm_ip, 'vm_gw': vm_gw, 'vm_name': str(inputs['name']+"-node1"), 'contrail_version': inputs['contrail_version'], 'registry': inputs['registry'], 'dpdk_compute': int(inputs['dpdk_compute']), 'contrail_deployer_branch': inputs['contrail_deployer_branch'],'ntp_server': 'ntp.juniper.net', 'vagrant_root': "%s"%os.path.join(par_dir, inputs['name'])}},{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all_k8s.sh")), 'destination': "\"/tmp/all_k8s.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all_k8s.sh\""}])
   # install contrail_command when contrail command ip_address is given
     if inputs['contrail_command']:
       host_instance.append(('command', get_contrail_command(inputs, name=host_names['command'], flavour=get_flavour(inputs, "medium"), management_ip=management_data['command'], interfaces=interfaces['command'], vm_ip=command_vm_ip)))

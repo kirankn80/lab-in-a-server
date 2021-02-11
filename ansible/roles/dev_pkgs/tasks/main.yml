@@ -21,7 +21,7 @@
 
 - name: Upgrade pip
   pip:
-    name: pip
+    name: pip==20.3.4
     extra_args: --upgrade
 
 - name: Install tree

@@ -19,6 +19,10 @@
     name: python-setuptools
     state: latest
 
+- name: Install Cryptography
+  pip:
+    name: cryptography==3.3.2
+
 - name: Install ansible
   pip:
     name: ansible==2.8.6

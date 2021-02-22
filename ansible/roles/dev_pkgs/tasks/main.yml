@@ -79,6 +79,11 @@
     name: python36
     state: present
 
+- name: Install jq
+  yum:
+    name: jq
+    state: present
+
 - name: Install packages for vrouter
   yum:
     name:

@@ -67,6 +67,7 @@
     path: /root/.bashrc
     block: |
       export GERRIT_BRANCH={{ branch }}
+      export CONTRAIL_BRANCH={{ branch }}
       export CONTRAIL=/root/contrail
       export LC_ALL=en_US.UTF-8
       export LANG=en_US.UTF-8

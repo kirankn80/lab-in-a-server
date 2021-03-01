@@ -19,6 +19,11 @@
     name: python-setuptools
     state: latest
 
+- name: Upgrade pip
+  pip:
+    name: pip==20.3.4
+    state: present
+
 - name: Install Cryptography
   pip:
     name: cryptography==3.3.2

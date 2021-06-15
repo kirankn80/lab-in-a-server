@@ -800,7 +800,7 @@ def three_node_k8s(inputs):
 def devenv(inputs):
   # validate schema
   if 'internal_network' not in inputs.keys():
-    inputs['internal_network'] = False
+    inputs['internal_network'] = True
 
   Schema({'name': And(lambda value: validate_name(value),
                       lambda value: validate_topology_name_creation(value)),
@@ -828,7 +828,7 @@ def devenv(inputs):
   if inputs['branch'][0] == 'R':
     image = get_centos_image(inputs['branch'][1:])
   s1 = image(str(inputs['name']+"-node1"), get_flavour(inputs, "medium"),
-             management_ip['node1'], interfaces['node1'],
+             management_ip.get('node1', {}), interfaces.get('node1', []),
              [{'method': 'ansible', 'path': "\"%s\"" % (os.path.join(ansible_scripts_path, 'dev-lite.yml')),
               'variables': {'branch': inputs['branch']}},
              {'method': 'file', 'source': "\"%s\"" % (os.path.join(ansible_scripts_path, "scripts/dev_init.sh")),

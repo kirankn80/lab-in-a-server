@@ -578,8 +578,8 @@ def three_node(inputs):
   # increase computes size
     for compute_node in computes:
       print(compute_node)
-      compute_node[1].flavour = get_flavour(inputs, "large")
-    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch'], 'huge_pages':vm.flavour[get_flavour(inputs, "large")]['hugepages']}})
+      compute_node[1].flavour = get_flavour(inputs, "medium")
+    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch'], 'huge_pages':vm.flavour[get_flavour(inputs, "medium")]['hugepages']}})
     contrail_host[1].provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
 
@@ -684,8 +684,8 @@ def three_node_vqfx(inputs):
     # allocate more memory for computes
     for compute_node in computes:
       print(compute_node)
-      compute_node[1].flavour = get_flavour(inputs, "large")
-    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'kvrouter_id': "101", 'computes': computes_ip, 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch'], 'huge_pages':vm.flavour[get_flavour(inputs, "large")]['hugepages']}})
+      compute_node[1].flavour = get_flavour(inputs, "medium")
+    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode.yml')), 'variables':{'primary':primary, 'controls': controls_ip, 'openstack_version': inputs['openstack_version'], 'kvrouter_id': "101", 'computes': computes_ip, 'kolla_evip': kolla_evip, 'kolla_ivip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch'], 'huge_pages':vm.flavour[get_flavour(inputs, "medium")]['hugepages']}})
     contrail_host[1].provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all.sh")), 'destination': "\"/tmp/all.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all.sh\"" }])
     host_instance.append(contrail_host)
     
@@ -780,8 +780,8 @@ def three_node_k8s(inputs):
   # increase computes size
     for compute_node in computes:
       print(compute_node)
-      compute_node[1].flavour = get_flavour(inputs, "large")
-    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode_k8s.yml')), 'variables':{'primary':primary, 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch'], 'huge_pages':vm.flavour[get_flavour(inputs, "large")]['hugepages'], 'k8s_version':'1.19.3'}})
+      compute_node[1].flavour = get_flavour(inputs, "medium")
+    contrail_host[1].provision.append({'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'multinode_k8s.yml')), 'variables':{'primary':primary, 'computes': computes_ip, 'registry': inputs['registry'], 'ntp_server': 'ntp.juniper.net', 'kolla_evip': kolla_evip, 'ctrl_data_gateway': ctrl_data_gateway, 'contrail_version': inputs['contrail_version'], 'vagrant_root': "%s"%(os.path.join(par_dir, inputs['name'])), 'dpdk_computes':inputs['dpdk_computes'], 'contrail_deployer_branch':inputs['contrail_deployer_branch'], 'huge_pages':vm.flavour[get_flavour(inputs, "medium")]['hugepages'], 'k8s_version':'1.19.3'}})
     contrail_host[1].provision.extend([{'method':'file', 'source':"\"%s\""%(os.path.join(ansible_scripts_path, "scripts/all_k8s.sh")), 'destination': "\"/tmp/all_k8s.sh\""}, {'method': 'shell', 'inline': "\"/bin/sh /tmp/all_k8s.sh\"" }])
     host_instance.append(contrail_host)
 
@@ -827,7 +827,7 @@ def devenv(inputs):
   image = vm.CENTOS77
   if inputs['branch'][0] == 'R':
     image = get_centos_image(inputs['branch'][1:])
-  s1 = image(str(inputs['name']+"-node1"), get_flavour(inputs, "tiny"),
+  s1 = image(str(inputs['name']+"-node1"), get_flavour(inputs, "medium"),
              management_ip['node1'], interfaces['node1'],
              [{'method': 'ansible', 'path': "\"%s\"" % (os.path.join(ansible_scripts_path, 'dev-lite.yml')),
               'variables': {'branch': inputs['branch']}},
@@ -835,12 +835,12 @@ def devenv(inputs):
               'destination': "\"/tmp/dev_init.sh\""},
              {'method': 'shell', 'inline': "\"/bin/sh /tmp/dev_init.sh\""}])
   # no switches one server
-  if not is_memory_sufficient({'node1': get_flavour(inputs, "tiny")}):
+  if not is_memory_sufficient({'node1': get_flavour(inputs, "medium")}):
     sys.exit()
   dirname=create_workspace(inputs['name'])
   vm.generate_vagrant_file([s1], [], file_name = os.path.join(dirname, "Vagrantfile"))
   insert_topo_info(inputs['template'], inputs['name'], ['node1'], {'node1': str(inputs['name']+"-node1")},
-                    flavour_dict = {'node1': get_flavour(inputs, "tiny")}, management_ips = management_ip,
+                    flavour_dict = {'node1': get_flavour(inputs, "medium")}, management_ips = management_ip,
                     vboxnet_ips = vboxnet_ip, ctrl_data_ips = {}, contrail_version = inputs['branch'])
   return dirname
 
@@ -897,7 +897,7 @@ def all_in_one(inputs):
 
   for node in hosts:
     if node is not 'command':
-      host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "large"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
+      host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
 
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']
@@ -981,7 +981,7 @@ def all_in_one_k8s(inputs):
 
   for node in hosts:
     if node is not 'command':
-      host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "large"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
+      host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
 
   if 'contrail_version' in inputs.keys():
     contrail_version = inputs['contrail_version']

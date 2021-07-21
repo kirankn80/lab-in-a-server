@@ -28,6 +28,10 @@
   pip:
     name: cryptography==3.3.2
 
+- name: Install jinja2
+  pip:
+    name: jinja2==2.11.3
+
 - name: Install ansible
   pip:
     name: ansible==2.8.6

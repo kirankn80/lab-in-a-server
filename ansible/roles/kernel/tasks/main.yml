@@ -1,0 +1,20 @@
+---
+- name: Download kernel 3.10.0-1127
+  yum:
+    name: http://tf-nexus.progmaticlab.com/repository/yum-tpc/kernel-3.10.0-1127.el7.x86_64.rpm
+    state: present
+
+- name: Reboot vm
+  reboot:
+    reboot_timeout: 300
+
+- name: verify kernel version
+  shell: uname -a | awk '{print $3}'
+  register: kernel_version_op
+  failed_when:
+    - kernel_version_op.stdout != "3.10.0-1127.el7.x86_64"
+
+- set_fact:
+    kernel_version: "{{ kernel_version_op.stdout }}"
+
+- debug: var=kernel_version

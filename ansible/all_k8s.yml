@@ -4,6 +4,7 @@
   gather_facts: no
   become: True
   roles:
+    - kernel
     - base_pkgs
     - contrail
   vars:

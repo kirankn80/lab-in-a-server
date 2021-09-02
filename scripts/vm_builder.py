@@ -563,7 +563,7 @@ def three_node(inputs):
   image = get_centos_image(release) 
 
   for node in hosts:
-    if node is not 'command':
+    if node != 'command':
       host_instance.append((node, image(host_names[node], get_flavour(inputs, "medium"), management_data[node], interfaces[node], [
                            {'method': 'ansible', 'path': "\"%s\"" % (os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}])))
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
@@ -669,7 +669,7 @@ def three_node_vqfx(inputs):
   image = get_centos_image(release)  
   
   for node in hosts:
-    if node is not 'command':
+    if node != 'command':
       host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
   # take out the last node instance make it controller and install contrail with this as host
@@ -765,7 +765,7 @@ def three_node_k8s(inputs):
   image = get_centos_image(release)
 
   for node in hosts:
-    if node is not 'command':
+    if node != 'command':
       host_instance.append((node, image(host_names[node], get_flavour(inputs, "medium"), management_data[node], interfaces[node], [
                            {'method': 'ansible', 'path': "\"%s\"" % (os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables': {}}])))
       computes_controllers.append({'host':"{}".format(host_names[node]), 'ip': ctrl_data_ip[node], 'mip': management_ip(management_data, vboxnet_ip, node)})
@@ -896,7 +896,7 @@ def all_in_one(inputs):
   image = get_centos_image(release) 
 
   for node in hosts:
-    if node is not 'command':
+    if node != 'command':
       host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
 
   if 'contrail_version' in inputs.keys():
@@ -980,7 +980,7 @@ def all_in_one_k8s(inputs):
   image = get_centos_image(release)
 
   for node in hosts:
-    if node is not 'command':
+    if node != 'command':
       host_instance.append((node, image(name=host_names[node], flavour=get_flavour(inputs, "medium"), management_ip=management_data[node], interfaces=interfaces[node], provision=[{'method': 'ansible', 'path': "\"%s\""%(os.path.join(ansible_scripts_path, 'base_pkgs.yml')), 'variables':{}}])))
 
   if 'contrail_version' in inputs.keys():

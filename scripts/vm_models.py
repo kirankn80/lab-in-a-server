@@ -107,7 +107,7 @@ class Server(ABC):
         param = """
       srv.vm.provision \"%s\", """%(item['method'])
         for key, value in item.items():
-          if key is not 'method':
+          if key != 'method':
             param = param + """{}: {}, """.format(key, value)
         config = config + param[:-2]
     return config

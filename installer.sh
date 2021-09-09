@@ -11,7 +11,7 @@ echo "$VAGRANT_VM"
 
 apt-get install -y gnupg2
 apt-get update
-apt-get install -y wget git bridge-utils python python-pip tmux apt-transport-https software-properties-common
+apt-get install -y wget git bridge-utils python3 python3-pip tmux apt-transport-https software-properties-common
 
 # VirtualBox Installation
 # Add following line in "/etc/apt/sources.list"
@@ -96,15 +96,19 @@ if [ ! -f "$MACHINE_DIR/.machines/vminfo.json" ]; then
   cp "$VAGRANT_VM/scripts/vminfo.json" "$MACHINE_DIR/.machines/vminfo.json"
 fi
 
-sudo cp $VAGRANT_VM/scripts/vm_builder.py /usr/bin/create_lab
+sudo cp $VAGRANT_VM/scripts/vm_builder.py /usr/bin/vm_builder
 sudo cp $VAGRANT_VM/scripts/vm_models.py /usr/bin/vm_models.py
+sudo cp $VAGRANT_VM/create_lab.sh /usr/bin/create_lab
 
-sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/create_lab
+sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/vm_builder
 sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/vm_models.py
-sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr/bin/create_lab
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr/bin/vm_builder
 sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr/bin/vm_models.py
-sudo sed -i 's@LAB_IN_A_SERVER_INFO_FILE@'$MACHINE_DIR'/.machines/vminfo.json@' /usr/bin/create_lab
+sudo sed -i 's@LAB_IN_A_SERVER_INFO_FILE@'$MACHINE_DIR'/.machines/vminfo.json@' /usr/bin/vm_builder
+sudo sed -i 's@LAB_IN_SERVER_PATH_INFO@'$VAGRANT_VM'@' /usr/bin/create_lab
 
+sudo chmod 777 /usr/bin/vm_builder
 sudo chmod 777 /usr/bin/create_lab
+
 
 

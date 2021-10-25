@@ -2,26 +2,25 @@ from abc import ABC
 from enum import Enum
 import os
 
-ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
+ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PAT"
 par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 
 flavour = {
-  'xlarge': {'memory': 65536, 'cpu': 8, 'hugepages': '64000'},
-  'large': {'memory': 32768, 'cpu': 16, 'hugepages': '32000'},
-  'medium': {'memory': 32768, 'cpu': 4, 'hugepages': '32000'},
-  'small': {'memory': 8192, 'cpu': 2, 'hugepages': '16000'},
-  'tiny': {'memory': 8192, 'cpu': 2, 'hugepages': '16000'}
+  'large': {'memory': 32768, 'cpu': 4},
+  'medium': {'memory': 16384, 'cpu': 4},
+  'small': {'memory': 8192, 'cpu': 2}
 }
 
 
-class Server(ABC):
+class Server():
 
-  def __init__(self, name, flavour="small", management_ip={}, interfaces=[], provision=[]):
+  def __init__(self, name, flavour, is_management_internal):
     self.name = name
-    self.interfaces = interfaces
-    self.management_ip = management_ip
-    self.provision = provision
     self.flavour = flavour
+    self.is_management_internal = is_management_internal
+    self.interfaces = []
+    self.management_ip = {}
+    self.provision = []
 
   def get_config(self):
     config = self.set_initialconfig()
@@ -43,7 +42,6 @@ class Server(ABC):
       srv.vm.provider "virtualbox" do |v|
         v.memory = {}
         v.cpus = {}
-        v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
       end""".format(self.name, box, self.name, flavour[self.flavour]['memory'], flavour[self.flavour]['cpu'])
     return config
 
@@ -113,7 +111,7 @@ class Server(ABC):
     return config
 
   def set_managementip(self, config):
-    if self.management_ip:
+    if not self.is_management_internal:
       config = config + """
       srv.vm.network \"public_network\", auto_config: false, bridge: \'eno1\'
       srv.vm.provision :ansible do |ansible|
@@ -128,15 +126,67 @@ class Server(ABC):
           vm_domain: \"englab.juniper.net jnpr.net juniper.net\",
           ntp_server: \"ntp.juniper.net\"
         }
-      end""" %(os.path.join(ansible_scripts_path, 'network.yml'), self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'])
+      end
+      srv.vm.provision \"shell\", path: \"%s\""""%(os.path.join(ansible_scripts_path, 'network.yml'), self.management_ip['gateway'], self.management_ip['ip'], self.management_ip['netmask'], os.path.join(ansible_scripts_path, 'scripts/set-centos-gw.sh'))
     return config
+  
+  def get_ip_by_name(self, name):
+    ip = None
+    for intf in self.interfaces:
+      if intf.get('name', None) == name:
+          ip = intf.get('ip', None)
+          break
+    if self.management_ip.get('name', None) == name:
+      ip = self.management_ip.get('ip', None)
+    return ip
+  
+  def get_gw_by_name(self, name):
+    gw = None
+    for intf in self.interfaces:
+      if intf.get('name', None) == name:
+          gw = intf.get('gateway', None)
+          break
+    if self.management_ip.get('name', None) == name:
+      gw = self.management_ip.get('gateway', None)
+    return gw
+  
+  def set_provisioner_list(self, provisioner_list):
+    self.provision = provisioner_list
+  
+  def set_management_ip(self, management_ip_dict):
+    self.management_ip = management_ip_dict
+  
+  def set_interface_list(self, interfaces_list):
+    self.interfaces = interfaces_list
+  
+  def get_interface_list(self):
+    return self.interfaces
+  
+  def add_interface(self, intf_dict):
+    self.interfaces.append(intf_dict)
+  
+  def set_flavour(self, flavour):
+    self.flavour = flavour
+    
+  def set_is_management_internal(self, value):
+    self.is_management_internal = value
+  
+  def get_name(self):
+    return self.name
+  
+  def get_topo_name(self):
+    return self.name.split('-node')[0]
+  
+  def add_provisioner(self, provisioner_dict):
+    self.provision.append(provisioner_dict)
+  
 
 class CENTOS75(Server):
 
   box = "kirankn/centOS-7.5"
 
-  def __init__(self, name, flavour, management_ip={}, interfaces=[], provision=[]):
-    super().__init__(name, flavour, management_ip, interfaces, provision)
+  def __init__(self, name, flavour="medium", is_management_internal=False):
+    super().__init__(name, flavour, is_management_internal)
 
   def set_initialconfig(self):
     return super().set_initialconfig("", self.box)
@@ -145,12 +195,12 @@ class CENTOS77(Server):
   
   box = "kirankn/centOS-7.7"
 
-  def __init__(self, name, flavour, management_ip={}, interfaces=[], provision=[]):
-    super().__init__(name, flavour, management_ip, interfaces, provision)
+  def __init__(self, name, flavour="medium", is_management_internal=False):
+    super().__init__(name, flavour, is_management_internal)
 
   def set_initialconfig(self):
     return super().set_initialconfig("", self.box)
-
+  
 
 class Switch():
 
@@ -183,7 +233,7 @@ class VQFX(Switch):
     config = """config.vm.define %s do |VAR_PLACEHOLDER|
     VAR_PLACEHOLDER.ssh.insert_key = false
     VAR_PLACEHOLDER.vm.box = \'%s\'
-    VAR_PLACEHOLDER.vm.boot_timeout = 600
+    VAR_PLACEHOLDER.vm.boot_timeout = 1200
     VAR_PLACEHOLDER.vm.synced_folder \'.\',\'/vagrant\', disabled: true
     VAR_PLACEHOLDER.vm.network \'private_network\',auto_config: false, nic_type: \'82540EM\', virtualbox__intnet: \"%s\"
     end

@@ -1,6 +1,6 @@
 ---
 - hosts: all
-  gather_facts: no
+  gather_facts: yes
   become: True
   tasks:
     - name: Upgrade kernel version for releases greater than 19O9

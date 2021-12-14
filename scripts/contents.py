@@ -10,7 +10,7 @@ class Contents():
     info_file = "LAB_IN_A_SERVER_INFO_FILE"
 
     par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
-    
+
     ansible_scripts_path = "LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH"
 
     @classmethod
@@ -59,26 +59,27 @@ class Contents():
             sys.exit()
 
     @classmethod
-    def insert(cls, template_name, name, hosts, switches, is_management_internal, dirname, topo_def=""):
+    def insert(cls, template_name, os_version, name, hosts,
+               switches, is_management_internal, dirname, topo_def=""):
         topo_info = {}
         topo_info['switches'] = []
         topo_info['hosts'] = [host.name for host in hosts]
         topo_info['template'] = template_name
+        topo_info['os_version'] = os_version
         topo_info['topo_info'] = topo_def
         topo_info['dirname'] = dirname
-        topo_info['host_vboxnet_ip'] = IFHandler.HostOnlyIfsHandler.used_hostonlyif_ips
+        topo_info['host_vboxnet_ip'] = IFHandler.HostOnlyIfsHandler.used_hostonlyif_ips   # noqa
         topo_info['internal_network'] = is_management_internal
         topo_info['hostnames'] = [host.name for host in hosts]
         topo_info['flavour'], topo_info['management_data'], \
             topo_info['vboxnet_interfaces'], \
-                topo_info['ctrl_data_ip'] = cls.get_dict_form(hosts,is_management_internal)
-        
+            topo_info['ctrl_data_ip'] = cls.get_dict_form(hosts, is_management_internal)  # noqa
         if cls.check_if_topo_exists(name):
             sys.exit()
         info = cls.get_all_contents()
         info[name] = topo_info
         cls.write_to_file(info)
-    
+
     @classmethod
     def get_dict_form(cls, hosts, is_management_internal=False):
         flavour_dict = {}
@@ -91,9 +92,9 @@ class Contents():
                     vboxnet_interfaces_dict[node.name] = intf.get('ip')
                     management_data[node.name] = {}
                 if intf.get('name') == 'ctrl_data':
-                    ctrl_data_ip[node.name] = intf.get('ip')      
+                    ctrl_data_ip[node.name] = intf.get('ip')
             if not is_management_internal:
                 management_data[node.name] = node.management_ip
             flavour_dict[node.name] = node.flavour
-        return flavour_dict, management_data, vboxnet_interfaces_dict, ctrl_data_ip
-
+        return (flavour_dict, management_data,
+                vboxnet_interfaces_dict, ctrl_data_ip)

@@ -1,0 +1,18 @@
+---
+- name: Re-configure {{ vm_interface }} interface
+  template:
+    src: ifcfg-interface.j2
+    dest: /etc/sysconfig/network-scripts/ifcfg-{{ vm_interface }}
+
+- name: Re-configure /etc/resolv.conf
+  template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+
+- name: disable default route via eth0 interface
+  shell: sudo sed  -i '/ONBOOT/a DEFROUTE="no"' /etc/sysconfig/network-scripts/ifcfg-eth0
+
+- name: restart network service
+  service: 
+    name: network
+    state: restarted

@@ -27,15 +27,3 @@
     src: "{{ instances_template }}"
     dest: "{{ vagrant_root }}/config/instances.yaml"
   delegate_to: localhost
-
-- name: Install kvm for DPDK vrouter
-  shell:  modprobe -r kvm_intel
-
-- name: Enable flags for nested virtualization
-  shell: modprobe kvm_intel nested=1 enable_shadow_vmcs=1 enable_apicv=1 ept=1
-
-- name: Change k8s version in roles files
-  replace:
-    path: "/root/contrail-ansible-deployer/playbooks/roles/k8s/tasks/main.yml"
-    regexp: 'k8s_version: \"(\d+)\.(\d+)\.(\d+)\"'
-    replace: "k8s_version: \"1.19.3\""

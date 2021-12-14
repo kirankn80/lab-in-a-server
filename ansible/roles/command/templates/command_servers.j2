@@ -6,7 +6,7 @@ command_servers:
         ssh_user: root
         ssh_pass: c0ntrail123
         sudo_pass: c0ntrail123
-        ntpserver: {{ntp_server}}
+        ntpserver: ntp.juniper.net
 {% if registry == 'nodei40'%}
         registry_insecure: true
         container_registry: nodei40.englab.juniper.net:5000

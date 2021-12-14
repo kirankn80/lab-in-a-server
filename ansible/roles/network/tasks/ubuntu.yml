@@ -1,0 +1,21 @@
+---
+- name: Re-configure network interface
+  template:
+    src: ifcfg-interface ubuntu.j2
+    dest: /etc/netplan/50-net-int.yaml
+        
+- name: disable default route via enp0s3 interface
+  blockinfile:
+    path: /etc/netplan/50-cloud-init.yaml
+    insertafter: 'dhcp4: true'
+    block: |4
+                    dhcp4-overrides:
+                        use-routes: false
+- name: Applying netplan
+  shell: netplan apply
+
+# - name: Update all packages
+#   apt:
+#     update_cache: yes
+#     upgrade: dist
+

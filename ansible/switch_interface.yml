@@ -1,6 +1,6 @@
 - name: create hostvars
   hosts: all
-  gather_facts: no
+  gather_facts: yes
   become: True
   connection: local
   roles:

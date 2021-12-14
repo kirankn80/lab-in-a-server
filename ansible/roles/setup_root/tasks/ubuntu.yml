@@ -1,0 +1,46 @@
+---
+- name: Allow SSH in UFW
+  ufw: rule=allow
+
+- name: Copy Hostname file to vm
+  ansible.builtin.copy:
+    src: /etc/hostname
+    dest: /etc/host_machine_name
+
+- name: PermitRootLogin yes
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#PermitRootLogin prohibit-password'
+    line: PermitRootLogin yes
+
+- name: Password Authentication yes
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication no'
+    line: PasswordAuthentication yes  
+
+- name: update root password to c0ntrail123
+  user:
+    name: root
+    password: $6$eRQSKZMu5nqf0xFR$v9JPa04GLcXaPycDH9yfZK0GXntTB9gBiy0xCT/x.chRTOpUXOhfJBqVbbjW4OopJv2vHfWXCtAmUIctrudVQ/
+    update_password: always
+  when: set_root_pass == 'contrail'   
+  
+- name: restart ssh service
+  service: 
+    name: ssh
+    state: restarted
+
+- name: Disabling predictable network interfaces names 
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: "^GRUB_CMDLINE_LINUX="
+    line: GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"
+
+- name: update grub
+  become: True
+  command: update-grub
+  
+- name: Reboot vm
+  reboot:
+    reboot_timeout: 3600

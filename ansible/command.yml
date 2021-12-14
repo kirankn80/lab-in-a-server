@@ -1,7 +1,7 @@
 ---
 - name: Generate command_servers.yml
   hosts: all
-  gather_facts: no
+  gather_facts: yes
   roles:
     - command
   vars:

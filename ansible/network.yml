@@ -1,7 +1,7 @@
 ---
 - name: Provision all in one vm
   hosts: all
-  gather_facts: no
+  gather_facts: yes
   become: True
   roles:
     - network

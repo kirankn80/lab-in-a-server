@@ -6,16 +6,22 @@ import re
 
 
 class VboxIp():
-    def __init__(self, ip, gateway, intf_type, netmask='255.255.255.0', name=None):
+    def __init__(self, ip, gateway, intf_type, netmask='255.255.255.0',
+                 name=None):
         self.ip = ip
         self.netmask = netmask
         self.gateway = gateway
         self.type = intf_type
         self.name = name
         self.host_only = True if self.type == "host_only" else False
-        
+        self.prefixlen = self.set_prefixlen()
+
     def get_ip_dict(self):
         return self.__dict__
+
+    def set_prefixlen(self):
+        return sum([bin(int(x)).count('1') for x in self.netmask.split('.')])
+
 
 class HostOnlyIfsHandler():
 
@@ -45,8 +51,9 @@ class HostOnlyIfsHandler():
     def vboxnet_get_hostonly_subnet(cls):
         if not cls.available_hostonlyifs_ips:
             op = vagrant.Vagrant.vboxmanage_list_hif()
-            existing_vboxnet_tuples = re.findall(r'Name:\s+(vboxnet\d)[\s\S]{1,100}IPAddress:\s+([\d{1,3}\.]+)',
-                                                 op)
+            existing_vboxnet_tuples = re.findall(
+                r'Name:\s+(vboxnet\d)[\s\S]{1,100}IPAddress:\s+([\d{1,3}\.]+)',
+                op)
             host_only_ips = []
             for vbnet in existing_vboxnet_tuples:
                 host_only_ips.append(vbnet[1])
@@ -63,5 +70,3 @@ class HostOnlyIfsHandler():
         input_ip.append('1')
         ip_str = '.'.join(input_ip)
         return ip_str
-
-        

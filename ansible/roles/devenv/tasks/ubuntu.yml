@@ -1,0 +1,34 @@
+---
+- name: Clone contrail-dev-env
+  git:
+    repo: https://github.com/tungstenfabric/tf-dev-env.git
+    dest: /root/contrail-dev-env
+    version: "master"
+
+# - name: Adding contrail-tpc repository
+#   blockinfile:
+#     path: /etc/yum.repos.d/tpc.repo
+#     create: yes
+#     block: |
+#       [contrail-tpc]
+#       name=Third parties for Contrail
+#       baseurl=http://tf-nexus.progmaticlab.com/repository/yum-tpc/
+#       enabled=1
+#       gpgcheck=0
+- name: Ensure env variables present in .bashrc
+  blockinfile:
+    path: /root/.bashrc
+    block: |
+      export GERRIT_BRANCH={{ branch }}
+      export CONTRAIL_BRANCH={{ branch }}
+      export CONTRAIL=/root/contrail
+      export LC_ALL=en_US.UTF-8
+      export LANG=en_US.UTF-8
+      export LANGUAGE=en_US.UTF-8
+      export LC_TYPE=en_US.UTF-8
+      export LD_LIBRARY_PATH=$CONTRAIL/build/lib:$LD_LIBRARY_PATH
+
+# - name: Ensure createrepo is present
+#   apt:
+#     name: createrepo
+#     state: present      

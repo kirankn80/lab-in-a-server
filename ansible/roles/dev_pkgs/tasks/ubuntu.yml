@@ -1,0 +1,5 @@
+---
+ - name: Install open ssh server
+   service:
+     name: ssh
+     enabled: yes

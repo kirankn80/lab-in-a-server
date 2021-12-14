@@ -1,7 +1,7 @@
 ---
 - name: Provision multinode instances
   hosts: all
-  gather_facts: no
+  gather_facts: yes
   become: True
   roles:
     - kernel

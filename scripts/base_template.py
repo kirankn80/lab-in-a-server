@@ -1,33 +1,25 @@
-from abc import ABC, abstractmethod
-import argparse
-from typing import ClassVar
-from colorama import Fore, init
+from abc import abstractmethod
+from colorama import Fore
 import datetime
-import json
 import os
-import pprint
-from prettytable import PrettyTable
-import random
 import re
-import requests
-import shutil
 import subprocess
 import sys
 import vm_models as vm
 import contents as db
 from contents import Contents
 import vagrant_wrappers as vagrant
-import yaml
 from interface_handler import HostOnlyIfsHandler, VboxIp
 
-class BasicTopology():
 
-    centos_version_map = {
+class BasicTopology():
+    os_version_map = {
 
         'centos-7.5': vm.CENTOS75,
         'centos-7.7': vm.CENTOS77,
         'centos-7.8': vm.CENTOS77,
         'centos-8.2': vm.CENTOS77,
+        'ubuntu-20.04': vm.UBUNTU_20_04,
         'default': vm.CENTOS77
     }
 
@@ -44,18 +36,17 @@ class BasicTopology():
         self.netmask = input_vars.get('netmask', None)
         self.is_management_internal = input_vars.get('internal_network', False)
         self.flavour = input_vars.get('flavour', 'medium')
-        self.centos_version = input_vars.get('centos_version', 'default')
+        self.os_version = input_vars.get('os_version', 'default')
         self.hosts = []
         self.switches = []
         # one liner info either devenv version or contrail version
         self.topo_info = topo_info
         self.total_nodes = total_nodes
 
-        
     def validate_fields(self):
         if self.validate_name() and \
                 self.validate_all_managementip() and \
-                self.validate_centos_version() and \
+                self.validate_os_version() and \
                 self.validate_flavour() and \
                 self.validate_netmask_gateway():
             print("all fields validated")
@@ -77,7 +68,8 @@ class BasicTopology():
     def validate_netmask_gateway(self):
         if self.netmask is not None and self.management_gateway is not None:
             if not re.match(
-                    r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$', self.netmask):
+                r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$',
+                    self.netmask):
                 print(Fore.RED + "Note:" + Fore.WHITE + "Invalid netmask.")
                 return False
             if not re.match(
@@ -90,7 +82,7 @@ class BasicTopology():
     def validate_all_managementip(self):
         if self.is_management_internal:
             return True
-        if type(self.ip_address_list) != list:
+        if not isinstance(self.ip_address_list, list):
             print(Fore.RED + "Note:" + Fore.WHITE +
                   "IP address given should be in list")
             return False
@@ -103,7 +95,9 @@ class BasicTopology():
                   "IP address given should be unique")
             return False
         for ip_address in self.ip_address_list:
-            if not re.match(r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$', ip_address):
+            if not re.match(
+                r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$',
+                    ip_address):
                 print(Fore.RED + "Note:" + Fore.WHITE +
                       "IP address is not in proper format")
                 return False
@@ -123,12 +117,12 @@ class BasicTopology():
                 return False
         return True
 
-    def validate_centos_version(self):
-        if self.centos_version in self.centos_version_map.keys() or None:
+    def validate_os_version(self):
+        if self.os_version in self.os_version_map.keys() or None:
             return True
         print(Fore.RED + "Note:" + Fore.WHITE +
               "Invalid Centos version. Available versions \
-                - {}".format(self.centos_version_map.keys()))
+                - {}".format(self.os_version_map.keys()))
         return False
 
     def validate_flavour(self):
@@ -139,63 +133,67 @@ class BasicTopology():
                     {}".format(vm.flavour.keys()))
             return False
         return True
-    
-    # This is reached when either management_ip_input number matches required ips or when internal_network is True
+
+    # This is reached when either management_ip_input number matches
+    # required ips or when internal_network is True
     def set_floating_ips(self):
         if self.netmask is not None and self.management_gateway is not None:
+            # import pdb; pdb.set_trace()
             for node in self.hosts:
                 node.set_management_ip(VboxIp(ip=self.ip_address_list.pop(),
-                                                   gateway=self.management_gateway,
-                                                   intf_type='bridge',
-                                                   netmask=self.netmask,
-                                                   name='mgmt').get_ip_dict())
+                                              gateway=self.management_gateway,
+                                              intf_type='bridge',
+                                              netmask=self.netmask,
+                                              name='mgmt').get_ip_dict())
         else:
             print(Fore.RED + "Note:" + Fore.WHITE +
                   "Please specify netmask and gateway fields")
             sys.exit()
         return
-    
+
     def set_hostonly_ips(self, name):
         gateway = HostOnlyIfsHandler.vboxnet_get_hostonly_subnet()
         for node in self.hosts:
-            node.add_interface(VboxIp(ip=HostOnlyIfsHandler.get_next_ip(gateway),
-                                           gateway=gateway,
-                                           intf_type='host_only',
-                                           name=name).get_ip_dict())
-            
+            node.add_interface(VboxIp
+                               (ip=HostOnlyIfsHandler.get_next_ip(gateway),
+                                gateway=gateway,
+                                intf_type='host_only',
+                                name=name).get_ip_dict())
 
     def set_host_names(self):
-        for node in range(1, self.total_nodes+1):
-            self.hosts.append(self.centos_version_map[
-                self.centos_version](name=str(self.name+'-node'+str(node)),
-                                     flavour=self.flavour,
-                                     is_management_internal=self.is_management_internal))
+        for node in range(1, self.total_nodes + 1):
+            self.hosts.append(self.os_version_map[
+                self.os_version](
+                    name=str(self.name + '-node' + str(node)),
+                    flavour=self.flavour,
+                    is_management_internal=self.is_management_internal))
         return
-    
+
     def set_management_ips(self):
         if self.is_management_internal:
             self.set_hostonly_ips('mgmt')
         else:
             self.set_floating_ips()
-                
-    
+
     @abstractmethod
     def bring_up_topo(self):
-        '''implemented in each topo''' 
-    
+        '''implemented in each topo'''
+
     @classmethod
     @abstractmethod
     def show(cls):
         '''implemented in each topo'''
-    
+
     def create_topo(self):
         if not self.is_memory_sufficient():
             sys.exit()
         dirname = vagrant.Vagrant.create_workspace(self.name)
-        vm.generate_vagrant_file(self.hosts,
-                                 self.switches,
-                                 file_name=os.path.join(dirname, 'Vagrantfile'))
-        Contents.insert(self.template_name, self.name,
+        # import pdb; pdb.set_trace()
+        vm.generate_vagrant_file(
+            self.hosts,
+            self.switches,
+            file_name=os.path.join(dirname, 'Vagrantfile'))
+        Contents.insert(self.template_name, self.os_version, self.name,
                         self.hosts, self.switches,
                         self.is_management_internal, dirname, self.topo_info)
         return dirname
@@ -211,35 +209,27 @@ class BasicTopology():
                 is %d GB\n Spinning up the topology will cause \
                     the host machine to have memory %d GB\n Aborting \
                         due to shortage of memory \n" % (
-                    self.mb_to_gb(mem_info['available']), 
-                    self.mb_to_gb(required_memory), 
-                    self.mb_to_gb((
-                        mem_info['available']- \
-                            required_memory))))
+                self.mb_to_gb(mem_info['available']),
+                self.mb_to_gb(required_memory),
+                self.mb_to_gb((
+                    mem_info['available'] -
+                    required_memory))))
             return False
-    
+
     def mb_to_gb(self, value):
-        return int(value/1024)
-    
+        return int(value / 1024)
+
     @classmethod
     def get_node_status(cls, topo_info):
         op = vagrant.Vagrant.vagrant_status(topo_info.get('dirname'))
         node_status = {}
         for node in topo_info['hosts']:
             node_status[node] = re.findall(
-                    r'{}[\s]+([\S\s]{{1,20}})[\s]+[(]virtualbox[)]'.format(node), op)[0]
+              r'{}[\s]+([\S\s]{{1,20}})[\s]+[(]virtualbox[)]'.format(node),
+              op)[0]
         for switch in topo_info['switches']:
             switch_re_name = str(switch + '_re')
             node_status[switch] = re.findall(
-                r'{}[\s]+([\S\s]{{1,20}})[\s]+[(]virtualbox[)]'.format(switch_re_name), op)[0]
+              r'{}[\s]+([\S\s]{{1,20}})[\s]+[(]virtualbox[)]'
+              .format(switch_re_name), op)[0]
         return node_status
-
-    
-    
-        
-        
-        
-        
-         
-
-

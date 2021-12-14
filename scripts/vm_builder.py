@@ -17,13 +17,13 @@ def validate_file(file_name):
     else:
         return file_name
 
+
 def validate_topology_name_deletion(name):
     is_topo_present = Contents.check_if_topo_exists(name)
     if not is_topo_present:
         parser.error(
-        "topology with name %s does not exist\n Check topology name" % (name))
+         "topology with name %s does not exist\n Check topology name" % (name))
     return name
-
 
 
 if __name__ == '__main__':
@@ -45,30 +45,45 @@ if __name__ == '__main__':
         "poweroff", help="power off all machines of given topology")
     # create topology has mandatory file name as argument
     create_topology.add_argument(
-        "file_name", help="path to the config file", type=lambda x: validate_file(x))
+        "file_name",
+        help="path to the config file",
+        type=lambda x: validate_file(x))
 
-    retry_topology.add_argument("topology_name", help="name of the topology to be rebuilt",
-                              type=lambda x: validate_topology_name_deletion(x))
+    retry_topology.add_argument(
+        "topology_name",
+        help="name of the topology to be rebuilt",
+        type=lambda x: validate_topology_name_deletion(x))
     # list global i.e., for all keys
-    show_topology.add_argument("topology_name", help="name of the topology",
-                             type=lambda x: validate_topology_name_deletion(x))
+    show_topology.add_argument(
+        "topology_name",
+        help="name of the topology",
+        type=lambda x: validate_topology_name_deletion(x))
     # destroy vm
-    delete_topology.add_argument("topology_name", help="name of the topology to be destroyed",
-                               type=lambda x: validate_topology_name_deletion(x))
+    delete_topology.add_argument(
+        "topology_name",
+        help="name of the topology to be destroyed",
+        type=lambda x: validate_topology_name_deletion(x))
 
-    list_topology.add_argument("--resources", help="list available resources",
-                             action="store_true", default=False)
+    list_topology.add_argument(
+        "--resources",
+        help="list available resources",
+        action="store_true", default=False)
 
-    poweron_topology.add_argument("topology_name", help="name of the topology to be powered on",
-                                type=lambda x: validate_topology_name_deletion(x))
+    poweron_topology.add_argument(
+        "topology_name",
+        help="name of the topology to be powered on",
+        type=lambda x: validate_topology_name_deletion(x))
 
     poweroff_topology.add_argument(
-      "topology_name", help="name of the topology to be powered off", type=lambda x: validate_topology_name_deletion(x))
+      "topology_name",
+      help="name of the topology to be powered off",
+      type=lambda x: validate_topology_name_deletion(x))
+
     args = parser.parse_args()
     print(args)
     if args.command == "list":
         getattr(actions.LabParser, 'list_vm')(args)
-    elif args.command == None:
+    elif args.command is None:
         parser.print_help()
     else:
         getattr(actions.LabParser, args.command)(args)

@@ -1,0 +1,10 @@
+network:
+    ethernets:
+        eth1:
+            dhcp4: false
+            dhcp6: false 
+            addresses: [{{ vm_ip }}/{{prefixlen}}]  
+            gateway4: {{ vm_gateway_ip }}
+            nameservers:
+              addresses: [10.204.217.158, 10.223.6.81, 10.204.208.221, 8.8.8.8]
+    version: 2

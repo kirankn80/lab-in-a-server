@@ -1,0 +1,68 @@
+---
+- name: Disable SELinux (will take effect on reboot)
+  selinux:
+    state: disabled
+
+- name: update root password to Embe1mpls
+  user:
+    name: root
+    password: $6$4XkkpLIp/vr0wVPO$.ALfXk51a9OJtf04tKdap4zIiL4QUgYLdjmoS.eJouH5oY63mxdCGpA.bKwanePQAR.bUEkz8DbqdaMLnlCsa0
+    update_password: always
+  when: set_root_pass == 'mpls'
+
+- name: update root password to c0ntrail123
+  user:
+    name: root
+    password: $6$eRQSKZMu5nqf0xFR$v9JPa04GLcXaPycDH9yfZK0GXntTB9gBiy0xCT/x.chRTOpUXOhfJBqVbbjW4OopJv2vHfWXCtAmUIctrudVQ/
+    update_password: always
+  when: set_root_pass == 'contrail'
+
+- name: Allow root SSH
+  replace: 
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin [a-z\-]+'
+    replace: 'PermitRootLogin yes'
+    backup: yes
+
+- name: Enable password authentication
+  replace: 
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication [a-z]+'
+    replace: 'PasswordAuthentication yes'
+    backup: yes
+
+- name: Create ssh directory
+  file:
+    path: /root/.ssh
+    owner: root
+    group: root
+    state: directory
+    mode: 0700
+
+- name: Check if authorized keys file exists
+  local_action: stat path="{{ lookup('env','HOME') }}/.ssh/authorized_keys"
+  register: authorized_keys
+
+- name: Copy authorized keys file
+  copy:
+    src: "{{ lookup('env','HOME') }}/.ssh/authorized_keys"
+    dest: /root/.ssh/authorized_keys
+    owner: root
+    group: root
+    mode: 0600
+  when: authorized_keys.stat.exists
+
+- name: Install sshpass
+  yum:
+    name: sshpass
+    state: present
+
+- name: Restart sshd
+  systemd:
+    name: sshd
+    state: restarted
+    
+- name: Copy Hostname file to vm
+  ansible.builtin.copy:
+    src: /etc/hostname
+    dest: /etc/host_machine_name

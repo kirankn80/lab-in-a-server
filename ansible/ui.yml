@@ -1,7 +1,7 @@
 ---
 - name: Provision ui vm
   hosts: all
-  gather_facts: no
+  gather_facts: yes
   become: True
   roles:
     - setup_root
@@ -9,3 +9,5 @@
   vars:
     set_root_pass: 'contrail'
     registry: 'bng-artifactory'
+    vagrant_root: ""
+

@@ -21,7 +21,7 @@ provider_config:
   bms:
     ssh_user: root
     ssh_pwd: c0ntrail123
-    ntpserver: {{ ntp_server }}
+    ntpserver: {{ntp_server}}
     domainsuffix: local
 instances:
   {{ vm_name }}:
@@ -60,5 +60,5 @@ kolla_config:
   customize:
     nova.conf: |
       [libvirt]
-      virt_type=kvm
+      virt_type=qemu
       cpu_mode=none

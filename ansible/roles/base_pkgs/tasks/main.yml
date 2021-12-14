@@ -1,53 +1,7 @@
 ---
-- name: Install epel-release
-  yum:
-    name: epel-release
-    state: latest
-
-- name: Install pip
-  yum:
-    name: python-pip
-    state: latest
-
-- name: Install python-devel
-  yum:
-    name: python-devel
-    state: present
-
-- name: Install python-setuptools
-  yum:
-    name: python-setuptools
-    state: latest
-
-- name: Upgrade pip
-  pip:
-    name: pip==20.3.4
-    state: present
-
-- name: Install Cryptography
-  pip:
-    name: cryptography==3.3.2
-
-- name: Install jinja2
-  pip:
-    name: jinja2==2.11.3
-
-- name: Install ansible
-  pip:
-    name: ansible==2.8.6
-
-- name: Install git
-  yum:
-    name: git
-    state: latest
-
-- name: Install tmux
-  yum:
-    name: tmux
-    state: latest
-
-- name: Disable firewall
-  service:
-    name: firewalld
-    enabled: no
-    state: stopped
+- name: Run playbooks for CENTOS
+  include_tasks: centos.yml
+  when: ansible_facts['distribution']=="CentOS"
+- name: Run playbooks for Ubuntu
+  include_tasks: ubuntu.yml
+  when: ansible_facts['distribution']=="Ubuntu"  

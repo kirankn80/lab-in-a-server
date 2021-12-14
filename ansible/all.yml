@@ -1,7 +1,7 @@
 ---
 - name: Provision all in one vm
   hosts: all
-  gather_facts: no
+  gather_facts: yes
   become: True
   roles:
     - kernel
@@ -12,3 +12,4 @@
     instances_template: 'config_instances.j2'
     registry: 'bng-artifactory'
     contrail_deployer_branch: 'master'
+    ntp_server: "ntp.juniper.net"

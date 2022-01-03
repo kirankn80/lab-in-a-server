@@ -9,13 +9,15 @@ import vm_models as vm
 import vagrant_wrappers as vagrant
 from contents import Contents
 from all_in_one import AllInOne
+from three_node import ThreeNode
 
 
 class LabParser():
 
     topo_dict = {
        'all_in_one': AllInOne,
-       'devenv': DevEnv
+       'devenv': DevEnv,
+       'three_node':ThreeNode
     }
 
     @classmethod

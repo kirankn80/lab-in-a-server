@@ -37,6 +37,7 @@ class BasicTopology():
         self.is_management_internal = input_vars.get('internal_network', False)
         self.flavour = input_vars.get('flavour', 'medium')
         self.os_version = input_vars.get('os_version', 'default')
+        self.contrail_command = input_vars.get('contrail_command', False)
         self.hosts = []
         self.switches = []
         # one liner info either devenv version or contrail version

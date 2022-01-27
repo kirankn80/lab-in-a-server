@@ -10,6 +10,7 @@ import vagrant_wrappers as vagrant
 from contents import Contents
 from all_in_one import AllInOne
 from three_node import ThreeNode
+from three_node_vqfx import ThreeNodeVqfx
 
 
 class LabParser():
@@ -17,7 +18,8 @@ class LabParser():
     topo_dict = {
        'all_in_one': AllInOne,
        'devenv': DevEnv,
-       'three_node':ThreeNode
+       'three_node':ThreeNode,
+       'three_node_vqfx':ThreeNodeVqfx
     }
 
     @classmethod

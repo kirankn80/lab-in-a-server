@@ -190,7 +190,7 @@ class CENTOS(Server):
       srv.vm.network \'private_network\', ip: \"%s\", netmask: \"%s\", nic_type: \'82540EM\'""" % (interface['ip'], interface['netmask'])
             else:
                 config = config + """
-      srv.vm.network \'private_network\', ip: \"%s\", netmask: \"%s\", nic_type: \'82540EM\', virtualbox__intnet: \"%s\"""" % (interface['ip'], interface['netmask'], interface['name'])
+      srv.vm.network \'private_network\', ip: \"%s\", netmask: \"%s\", nic_type: \'82540EM\', virtualbox__intnet: \"%s\"""" % (interface['ip'], interface['netmask'], interface['unique_name'])
             config = config + """
       srv.vm.provision :ansible do |ansible|
         ansible.playbook = \"%s\"
@@ -289,6 +289,9 @@ class Switch():
         self.pfe_name = str(name+"_pfe")
         self.interfaces = interfaces
 
+    def add_interface(self, intf_dict):
+        self.interfaces.append(intf_dict)
+        
     def setup_box(self):
         pass
 
@@ -345,7 +348,7 @@ class VQFX(Switch):
         # setting up physical connections
         for interface in self.interfaces:
             config = config + \
-                self.setup_internal_network(str("switch"+"re"), interface)
+                self.setup_internal_network(str("switch"+"re"), interface['unique_name'])
         # configuring logical connection
         config = config + """
       VAR_PLACEHOLDER.vm.provision :ansible do |ansible|

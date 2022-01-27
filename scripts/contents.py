@@ -62,7 +62,7 @@ class Contents():
     def insert(cls, template_name, os_version, name, hosts,
                switches, is_management_internal, dirname, topo_def=""):
         topo_info = {}
-        topo_info['switches'] = []
+        topo_info['switches'] = [switch.name for switch in switches]
         topo_info['hosts'] = [host.name for host in hosts]
         topo_info['template'] = template_name
         topo_info['os_version'] = os_version

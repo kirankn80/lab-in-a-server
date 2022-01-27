@@ -2,7 +2,7 @@
 - name: Get configuration
   hosts: vqfx10k
   connection: local
-  gather_facts: no
+  gather_facts: yes
   roles:
     - Juniper.junos
   tasks:

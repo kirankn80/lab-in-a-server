@@ -9,7 +9,7 @@ import vm_models as vm
 import contents as db
 from contents import Contents
 import vagrant_wrappers as vagrant
-from interface_handler import HostOnlyIfsHandler, VboxIp
+from interface_handler import HostOnlyIfsHandler, VboxIp, InternalNetwork, VboxIPSwitch
 
 
 class BasicTopology():
@@ -21,6 +21,11 @@ class BasicTopology():
         'centos-8.2': vm.CENTOS77,
         'ubuntu-20.04': vm.UBUNTU_20_04,
         'default': vm.CENTOS77
+    }
+    
+    switch_map = {
+        
+        'default': vm.VQFX
     }
 
     unique_suffix = str(datetime.datetime.now().strftime("_%Y%m%d%m%s"))
@@ -37,6 +42,8 @@ class BasicTopology():
         self.is_management_internal = input_vars.get('internal_network', False)
         self.flavour = input_vars.get('flavour', 'medium')
         self.os_version = input_vars.get('os_version', 'default')
+        self.switch_type = input_vars.get('switch_type','default')
+        self.switch = input_vars.get('switch', 1)
         self.contrail_command = input_vars.get('contrail_command', False)
         self.hosts = []
         self.switches = []
@@ -169,7 +176,22 @@ class BasicTopology():
                     flavour=self.flavour,
                     is_management_internal=self.is_management_internal))
         return
-
+    
+    def set_switch_names(self):
+         for switch in range(1, self.switch + 1):
+             self.switches.append(self.switch_map[
+                self.switch_type](
+                    name=str(self.name + '-switch' + str(switch)),
+                    gateway= InternalNetwork.get_ctrl_subnet()))
+         return
+   
+    def set_switch_host_interfaces(self,unique_name,node,switch):
+        gateway = InternalNetwork.get_ctrl_subnet()
+        ip = InternalNetwork.get_next_ip(gateway)
+        intf_dict1 = VboxIp(ip = ip, gateway=gateway, unique_name = unique_name, name ='control_data').get_ip_dict()
+        node.add_interface(intf_dict1)
+        switch.add_interface(VboxIpSwitch(unique_name).get_ip_dict())
+        
     def set_management_ips(self):
         if self.is_management_internal:
             self.set_hostonly_ips('mgmt')

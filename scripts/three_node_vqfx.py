@@ -10,11 +10,12 @@ import requests
 from prettytable import PrettyTable
 import vm_models as vm
 import vagrant_wrappers as vagrant
-from provisioners import Basepkgs, ThreeNodeContrail, ContrailCommand
-from interface_handler import HostOnlyIfsHandler, VboxIp
+from provisioners import Basepkgs, ThreeNodeVqfxContrail, ContrailCommand
+from interface_handler import HostOnlyIfsHandler, InternalNetwork, VboxIp, VboxIpSwitch
 
 
-class ThreeNode(BasicTopology):
+
+class ThreeNodeVqfx(BasicTopology):
     def __init__(self, input_params):
         self.dpdk_compute = input_params.get('dpdk_computes', 0)
         self.contrail_command = input_params.get('contrail_command', False)
@@ -26,16 +27,18 @@ class ThreeNode(BasicTopology):
         self.flavour = input_params.get('flavour', 'medium')
         self.kolla_external_vip_address = input_params.get('kolla_external_vip_address', [])
         self.total_nodes = 3 + self.additional_compute + self.additional_control + int(self.contrail_command)
+        self.additional_nodes = self.additional_compute + self.additional_control + int(self.contrail_command)
         self.total_compute = 2 + self.additional_compute
         self.total_control = 1 + self.additional_control
         self.huge_pages = vm.flavour[self.flavour]['hugepages']
         self.compute_info = []
         self.control_info = []
+        self.interfaces = {}
         self.primary_control = None
         
         input_params['total_nodes'] = self.total_nodes
         super().__init__(
-            "three_node",
+            "three_node_vqfx",
             input_params,
             self.total_nodes,
             self.contrail_version)
@@ -43,11 +46,19 @@ class ThreeNode(BasicTopology):
     def validate_fields(self):
         if self.dpdk_compute <= self.total_compute and \
            self.validate_kolla_external_vip_address() and \
+           self.validate_tnv_total_nodes() and \
            super().validate_fields():
             return True
         else:
-            return False
-        
+            sys.exit()
+   
+    def validate_tnv_total_nodes(self):
+      if self.total_nodes <=5:
+          return True
+      else: 
+       print(Fore.RED + "Note: " + Fore.WHITE + "Total number of nodes connected to switch cannot exceed 5")
+      return False
+    
     def validate_kolla_external_vip_address(self):
         if self.total_control > 1 :
             if self.is_management_internal:
@@ -84,10 +95,10 @@ class ThreeNode(BasicTopology):
         return True 
               
     def get_contrail_deployer_branch(self):
-        contrail_list_branch_api = "https://api.github.com/repos/Juniper/contrail-ansible-deployer/branches"  # noqa
+        contrail_list_branch_api = "https://api.github.com/repos/Juniper/contrail-ansible-deployer/branches" # noqa
         tf_list_branch_api = "https://api.github.com/repos/tungstenfabric/tf-ansible-deployer/branches"  # noqa
         branches_info = requests.get(
-                        contrail_list_branch_api).json() + requests.get(
+                        contrail_list_branch_api, verify = False).json() + requests.get(
                         tf_list_branch_api).json()
         branches_info.reverse()
         all_branches = {}
@@ -104,7 +115,7 @@ class ThreeNode(BasicTopology):
                 return all_branches[branch]
         print("No matching version found \n checking out {} branch \
             in contrail ansible deployer".format("master"))
-        return "master"   
+        return "master"
             
     def provision_contrail(self):
         if self.contrail_version:
@@ -113,11 +124,13 @@ class ThreeNode(BasicTopology):
                 ContrailCommand().provision(command_node,
                                             self.contrail_version,
                                             self.registry)
-            ThreeNodeContrail().provision(
+            ThreeNodeVqfxContrail().provision(
                             self.primary_control, self.contrail_version,
                             self.openstack_version, self.registry,
                             self.dpdk_compute,
-                            self.get_contrail_deployer_branch(),self.compute_info,self.control_info, self.kolla_external_vip_address,self.huge_pages)   
+                            "R1912.L4.95",
+                            # self.get_contrail_deployer_branch(),
+                            self.compute_info,self.control_info, self.kolla_external_vip_address,self.huge_pages)   
     
     def get_control_compute_info(self):
         self.compute_info = self.get_contrail_ip_info(0,self.total_compute)
@@ -232,15 +245,20 @@ class ThreeNode(BasicTopology):
                 table.align["Values"] = "l"
                 print(table)
                 print("\n")
-                          
-    def set_ctrl_data_ips(self):
-        self.set_hostonly_ips('control_data')
-
+                            
+    def connect_switch_host(self):
+        icounter = 1
+        for host in self.hosts:
+            unique_name = InternalNetwork.get_unique_name(icounter) 
+            self.set_switch_host_interfaces(unique_name,host,self.switches[0])
+            icounter += 1
+                           
     def bring_up_topo(self):
         self.validate_fields()
         self.set_host_names()
         self.set_management_ips()
-        self.set_ctrl_data_ips()
+        self.set_switch_names()
+        self.connect_switch_host()
         self.get_control_compute_info()
         self.provision_contrail()
         dirname = self.create_topo()

@@ -77,7 +77,6 @@ class Vagrant():
 
     @classmethod
     def vboxmanage_remove_hif(cls, vbox_intf):
-        # import pdb; pdb.set_trace()
         command = ["vboxmanage", "hostonlyif", "remove"]
         command.append(vbox_intf)
         # import pdb; pdb.set_trace()

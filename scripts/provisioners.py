@@ -111,7 +111,7 @@ class AllInOneContrail(BasicProvisioner):
             'openstack_version': openstack_version,
             'registry': registry,
             'dpdk_compute': dpdk_compute,
-            'vagrant_root': os.path.join(self.machines_dir, host.get_topo_name()),
+            'vagrant_root': os.path.join(self.machines_dir, host.get_name()),
             'contrail_deployer_branch': contrail_deployer_branch,
         }
         self.p_list[:0] = [AnsibleProvisioner(
@@ -164,4 +164,37 @@ class ThreeNodeContrail(BasicProvisioner):
         }
         self.p_list[:0] = [AnsibleProvisioner(
             'multinode.yml', self.vars_dict).get_dict()]
-        host.provision.extend(self.p_list)        
+        host.provision.extend(self.p_list)   
+    
+class ThreeNodeVqfxContrail(BasicProvisioner):
+    def __init__(self):
+        self.p_list = []
+        self.p_list.append(FileProvisioner(
+            'scripts/all.sh', '/tmp/all.sh').get_dict())
+        self.p_list.append(ShellInlineProvisioner(
+            '/bin/sh /tmp/all.sh').get_dict())
+    
+    def provision(self, host, contrail_version,
+                  openstack_version, registry,
+                  dpdk_compute,
+                  contrail_deployer_branch,
+                  computes,controls,kolla_evip,huge_pages):
+    
+        self.vars_dict = {
+            'primary': {'host': host.get_name(),'ip': host.get_ip_by_name('control_data'),'mip': host.get_ip_by_name('mgmt')},
+            'controls': controls,
+            'openstack_version': openstack_version,
+            'computes': computes,
+            'registry': registry,
+            'ntp_server': "ntp.juniper.net",
+            'kolla_evip': kolla_evip,
+            'ctrl_data_gateway': host.get_gw_by_name('control_data'),
+            'contrail_version': contrail_version,
+            'vagrant_root': os.path.join(self.machines_dir, host.get_topo_name()),
+            'dpdk_computes': dpdk_compute,
+            'contrail_deployer_branch': contrail_deployer_branch,
+            'huge_pages': huge_pages
+        }
+        self.p_list[:0] = [AnsibleProvisioner(
+            'multinode.yml', self.vars_dict).get_dict()]
+        host.provision.extend(self.p_list)               

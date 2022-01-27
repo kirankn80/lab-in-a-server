@@ -3,16 +3,18 @@ import yaml
 import os
 import sys
 import re
+import datetime
 
 
 class VboxIp():
-    def __init__(self, ip, gateway, intf_type, netmask='255.255.255.0',
-                 name=None):
+    def __init__(self, ip, gateway, intf_type = None, netmask='255.255.255.0',
+                 name=None, unique_name = None):
         self.ip = ip
         self.netmask = netmask
         self.gateway = gateway
         self.type = intf_type
         self.name = name
+        self.unique_name = unique_name
         self.host_only = True if self.type == "host_only" else False
         self.prefixlen = self.set_prefixlen()
 
@@ -22,7 +24,7 @@ class VboxIp():
     def set_prefixlen(self):
         return sum([bin(int(x)).count('1') for x in self.netmask.split('.')])
 
-
+        
 class HostOnlyIfsHandler():
 
     available_hostonlyifs_ips = []
@@ -30,7 +32,7 @@ class HostOnlyIfsHandler():
 
     @classmethod
     def get_next_ip(cls, subnet):
-        ip = cls.used_hostonlyif_ips[subnet]
+        ip = cls.used_hostonlyif_ips[subnet] 
         if ip == 254:
             print("ERROR: subnet exhausted for {}".format(subnet))
             sys.exit(0)
@@ -39,7 +41,7 @@ class HostOnlyIfsHandler():
         subnet1 = subnet.split('.')[:-1]
         subnet1.append(str(ip))
         return str('.'.join(subnet1))
-
+    
     @classmethod
     def get_all_valid_hostonly_ifs(cls):
         valid_vboxnet_ips = []
@@ -70,3 +72,41 @@ class HostOnlyIfsHandler():
         input_ip.append('1')
         ip_str = '.'.join(input_ip)
         return ip_str
+
+class VboxIpSwitch():
+    def __init__(self, unique_name = None):
+      
+        self.unique_name = unique_name
+       
+    def get_ip_dict(self):
+        return self.__dict__
+
+class InternalNetwork():
+    
+    used_ctrl_data_ips = {}
+    unique_suffix = str(datetime.datetime.now().strftime("_%Y%m%d%m%s"))
+    
+    @classmethod
+    def get_next_ip(cls, subnet):
+        ip = cls.used_ctrl_data_ips[subnet] 
+        if ip == 254:
+            print("ERROR: subnet exhausted for {}".format(subnet))
+            sys.exit(0)
+        ip = ip + 1
+        cls.used_ctrl_data_ips[subnet] = ip
+        subnet1 = subnet.split('.')[:-1]
+        subnet1.append(str(ip))
+        return str('.'.join(subnet1))
+   
+    @classmethod
+    def get_unique_name(cls,icounter):
+        unique_name = str('i' + str(icounter) + cls.unique_suffix )
+        return unique_name
+        
+    @classmethod
+    def get_ctrl_subnet(cls):
+         ctrl_data_subnet = {'octet1': '192', 'octet2': '168','octet3': 251}
+         subnet = str(ctrl_data_subnet['octet1']+'.'+ctrl_data_subnet['octet2']+'.'+str(ctrl_data_subnet['octet3'])+'.'+str(1))
+         ctrl_data_subnet['octet3'] += 1
+         cls.used_ctrl_data_ips[subnet] = 1
+         return subnet

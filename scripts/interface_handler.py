@@ -1,4 +1,4 @@
-import vagrant_wrappers as vagrant
+from . import vagrant_wrappers as vagrant
 import yaml
 import os
 import sys
@@ -74,6 +74,7 @@ class HostOnlyIfsHandler():
         return ip_str
 
 class VboxIpSwitch():
+    
     def __init__(self, unique_name = None):
       
         self.unique_name = unique_name

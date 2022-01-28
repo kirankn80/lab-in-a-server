@@ -1,4 +1,3 @@
-from base_template import BasicTopology
 from colorama import Fore, init
 import json
 import os
@@ -8,10 +7,11 @@ import subprocess
 import yaml
 import requests
 from prettytable import PrettyTable
-import vm_models as vm
-import vagrant_wrappers as vagrant
-from provisioners import Basepkgs, ThreeNodeContrail, ContrailCommand
-from interface_handler import HostOnlyIfsHandler, VboxIp
+from . import vm_models as vm
+from . import vagrant_wrappers as vagrant
+from .base_template import BasicTopology
+from .provisioners import Basepkgs, ThreeNodeContrail, ContrailCommand
+from .interface_handler import HostOnlyIfsHandler, VboxIp
 
 
 class ThreeNode(BasicTopology):

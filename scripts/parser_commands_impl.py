@@ -4,13 +4,13 @@ import yaml
 import re
 from prettytable import PrettyTable
 from colorama import Fore, init
-from dev_env import DevEnv
-import vm_models as vm
-import vagrant_wrappers as vagrant
-from contents import Contents
-from all_in_one import AllInOne
-from three_node import ThreeNode
-from three_node_vqfx import ThreeNodeVqfx
+from . import vm_models as vm
+from . import vagrant_wrappers as vagrant
+from .dev_env import DevEnv
+from .contents import Contents
+from .all_in_one import AllInOne
+from .three_node import ThreeNode
+from .three_node_vqfx import ThreeNodeVqfx
 
 
 class LabParser():

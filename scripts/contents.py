@@ -2,7 +2,7 @@ import json
 import os
 import sys
 import shutil
-import interface_handler as IFHandler
+from . import interface_handler as IFHandler
 
 
 class Contents():

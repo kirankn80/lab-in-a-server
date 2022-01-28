@@ -5,11 +5,11 @@ import os
 import re
 import subprocess
 import sys
-import vm_models as vm
-import contents as db
-from contents import Contents
-import vagrant_wrappers as vagrant
-from interface_handler import HostOnlyIfsHandler, VboxIp, InternalNetwork, VboxIPSwitch
+from . import vm_models as vm
+from . import contents as db
+from . import vagrant_wrappers as vagrant
+from .contents import Contents
+from .interface_handler import HostOnlyIfsHandler, VboxIp, InternalNetwork, VboxIpSwitch
 
 
 class BasicTopology():

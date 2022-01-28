@@ -1,14 +1,11 @@
+#!/usr/bin/env python3
+
 import argparse
-from typing import ClassVar
-from colorama import Fore, init
+from colorama import init
 import os
-import sys
-import yaml
-import parser_commands_impl as actions
-import vagrant_wrappers as vagrant
-from contents import Contents
-from all_in_one import AllInOne
-from dev_env import DevEnv
+import lab.parser_commands_impl as actions
+from lab.contents import Contents
+
 
 
 def validate_file(file_name):

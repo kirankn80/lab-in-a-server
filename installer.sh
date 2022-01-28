@@ -2,6 +2,9 @@
 
 export LC_ALL=C
 
+SITE_PACKAGES_PATH="`python3 -m site --user-site`"
+
+
 VAGRANT_VM="`dirname \"$0\"`"              
 VAGRANT_VM="`( cd \"$VAGRANT_VM\" && pwd )`"  
 if [ -z "$VAGRANT_VM" ] ; then
@@ -72,6 +75,11 @@ wget http://10.204.217.158/images/kirankn/centos-7.7-virtualbox.box
 vagrant box add --name kirankn/centOS-7.7 /var/tmp/centos-7.7-virtualbox.box
 fi
 
+if [ `vagrant box list | grep kirankn/ubuntu-20.04 | wc -l` -eq "0" ]; then
+wget http://10.204.217.158/images/kirankn/ubuntu-20.04-virtualbox.box
+vagrant box add --name kirankn/ubuntu-20.04 /var/tmp/ubuntu-20.04-virtualbox.box
+fi
+
 echo "List Box"
 vagrant box list
 
@@ -92,18 +100,48 @@ if [ ! -d "$MACHINE_DIR/.machines" ]; then
   echo "directory .machines created in home directory"
 fi
 
+if [ ! -d "$SITE_PACKAGES_PATH/lab" ]; then
+  mkdir "$SITE_PACKAGES_PATH/lab"
+  echo "directory lab created in site-packages directory"
+fi
+
+if [ ! -d "/etc/lab" ]; then
+  mkdir "/etc/lab"
+  echo "directory lab created in etc directory"
+fi
+
+ANSIBLE_PATH="`/etc/lab`"
+
+if [ ! -d "/etc/vbox/networks.conf" ]; then
+  echo "* 0.0.0.0/0 ::/0" >> /etc/vbox/networks.conf
+  echo "directory networks.conf created in etc/vbox directory to support higher versions of vbox"
+fi
+
 if [ ! -f "$MACHINE_DIR/.machines/vminfo.json" ]; then
   cp "$VAGRANT_VM/scripts/vminfo.json" "$MACHINE_DIR/.machines/vminfo.json"
 fi
 
 sudo cp $VAGRANT_VM/scripts/vm_builder.py /usr/bin/vm_builder
-sudo cp $VAGRANT_VM/scripts/vm_models.py /usr/bin/vm_models.py
+
+sudo cp $VAGRANT_VM/scripts/all_in_one.py $SITE_PACKAGES_PATH/lab/all_in_one.py
+sudo cp $VAGRANT_VM/scripts/base_template.py $SITE_PACKAGES_PATH/lab/base_template.py
+sudo cp $VAGRANT_VM/scripts/contents.py $SITE_PACKAGES_PATH/lab/contents.py
+sudo cp $VAGRANT_VM/scripts/dev_env.py $SITE_PACKAGES_PATH/lab/dev_env.py
+sudo cp $VAGRANT_VM/scripts/interface_handler.py $SITE_PACKAGES_PATH/lab/interface_handler.py
+sudo cp $VAGRANT_VM/scripts/parser_commands_impl.py $SITE_PACKAGES_PATH/lab/parser_commands_impl.py
+sudo cp $VAGRANT_VM/scripts/provisioners.py $SITE_PACKAGES_PATH/lab/provisioners.py
+sudo cp $VAGRANT_VM/scripts/three_node_vqfx.py $SITE_PACKAGES_PATH/lab/three_node_vqfx.py
+sudo cp $VAGRANT_VM/scripts/three_node.py $SITE_PACKAGES_PATH/lab/three_node.py
+sudo cp $VAGRANT_VM/scripts/vagrant_wrappers.py $SITE_PACKAGES_PATH/lab/vagrant_wrappers.py
+sudo cp $VAGRANT_VM/scripts/vm_models.py $SITE_PACKAGES_PATH/lab/vm_models.py
+sudo cp -r $VAGRANT_VM/ansible /etc/lab
+
 sudo cp $VAGRANT_VM/create_lab.sh /usr/bin/create_lab
 
 sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/vm_builder
-sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/vm_models.py
-sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr/bin/vm_builder
-sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$VAGRANT_VM'/ansible@' /usr/bin/vm_models.py
+sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' $SITE_PACKAGES_PATH/lab/vm_models.py
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$ANSIBLE_PATH'/ansible@' /usr/bin/vm_builder
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$ANSIBLE_PATH'/ansible@' $SITE_PACKAGES_PATH/lab/vm_models.py
 sudo sed -i 's@LAB_IN_A_SERVER_INFO_FILE@'$MACHINE_DIR'/.machines/vminfo.json@' /usr/bin/vm_builder
 sudo sed -i '3 s@LAB_IN_SERVER_PATH_INFO@'$VAGRANT_VM'@' /usr/bin/create_lab
 

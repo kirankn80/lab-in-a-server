@@ -1,6 +1,6 @@
 from abc import ABC
 from yaml.tokens import AnchorToken
-import vagrant_wrappers as vagrant
+from . import vagrant_wrappers as vagrant
 import yaml
 import os
 import sys

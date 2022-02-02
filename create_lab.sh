@@ -21,7 +21,7 @@ fi
 
 if [ $LOCAL_MASTER != $ORIGIN_MASTER ]; then
     
-    if git pull origin version2; then
+    if git pull origin $GIT_BRANCH; then
 
         sudo cp $LAB_IN_SERVER_PATH/scripts/vm_builder.py /usr/bin/vm_builder
         sudo cp $LAB_IN_SERVER_PATH/scripts/all_in_one.py $SITE_PACKAGES_PATH/lab/all_in_one.py
@@ -35,6 +35,7 @@ if [ $LOCAL_MASTER != $ORIGIN_MASTER ]; then
         sudo cp $LAB_IN_SERVER_PATH/scripts/three_node.py $SITE_PACKAGES_PATH/lab/three_node.py
         sudo cp $LAB_IN_SERVER_PATH/scripts/vagrant_wrappers.py $SITE_PACKAGES_PATH/lab/vagrant_wrappers.py
         sudo cp $LAB_IN_SERVER_PATH/scripts/vm_models.py $SITE_PACKAGES_PATH/lab/vm_models.py
+        sudo cp $LAB_IN_SERVER_PATH/create_lab.sh /usr/bin/create_lab
 
         MACHINE_DIR="$HOME"
 

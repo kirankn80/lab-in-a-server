@@ -101,12 +101,12 @@ if [ ! -d "$MACHINE_DIR/.machines" ]; then
 fi
 
 if [ ! -d "$SITE_PACKAGES_PATH/lab" ]; then
-  mkdir "$SITE_PACKAGES_PATH/lab"
+  mkdir -p "$SITE_PACKAGES_PATH/lab"
   echo "directory lab created in site-packages directory"
 fi
 
 if [ ! -d "/etc/lab" ]; then
-  mkdir "/etc/lab"
+  mkdir -p "/etc/lab"
   echo "directory lab created in etc directory"
 fi
 

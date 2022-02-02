@@ -10,12 +10,17 @@ GIT_BRANCH="`git rev-parse --abbrev-ref HEAD`"
 LOCAL_MASTER="`git rev-parse $GIT_BRANCH`"
 ORIGIN_MASTER="`git rev-parse origin/$GIT_BRANCH`"
 
-if [ $LOCAL_MASTER != $ORIGIN_MASTER ]; then
+if [ $(git status --porcelain | wc -l) -ne "0" ]; then
+
     TIME_STR=$(date +"%y%m%d%H%M%S")
     echo "Updating lab-in-a-server .... "
     echo "Copying the diff to ../lab_in_server_diff_$TIME_STR.diff"
     git diff > ../lab_in_server_diff_$TIME_STR.diff
     git checkout .
+fi
+
+if [ $LOCAL_MASTER != $ORIGIN_MASTER ]; then
+    
     if git pull origin version2; then
 
         sudo cp $LAB_IN_SERVER_PATH/scripts/vm_builder.py /usr/bin/vm_builder

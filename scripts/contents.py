@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import shutil
 from . import interface_handler as IFHandler
 
 

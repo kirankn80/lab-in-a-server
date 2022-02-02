@@ -1,5 +1,4 @@
-from colorama import Fore, init
-import json
+from colorama import Fore
 import os
 import re
 import sys
@@ -10,7 +9,7 @@ from prettytable import PrettyTable
 from . import vm_models as vm
 from . import vagrant_wrappers as vagrant
 from .base_template import BasicTopology
-from .provisioners import Basepkgs, ThreeNodeContrail, ContrailCommand
+from .provisioners import ThreeNodeContrail, ContrailCommand
 from .interface_handler import HostOnlyIfsHandler, VboxIp
 
 

@@ -1,9 +1,7 @@
 from abc import ABC
 from yaml.tokens import AnchorToken
 from . import vagrant_wrappers as vagrant
-import yaml
 import os
-import sys
 
 
 class Provisioner(ABC):

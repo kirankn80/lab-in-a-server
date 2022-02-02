@@ -1,14 +1,11 @@
-from colorama import Fore, init
-import json
 import os
-import sys
 import yaml
 import requests
 from prettytable import PrettyTable
 from . import vm_models as vm
 from . import vagrant_wrappers as vagrant
 from .base_template import BasicTopology
-from .provisioners import Basepkgs, AllInOneContrail, ContrailCommand
+from .provisioners import AllInOneContrail, ContrailCommand
 
 
 class AllInOne(BasicTopology):

@@ -1,6 +1,4 @@
 from . import vagrant_wrappers as vagrant
-import yaml
-import os
 import sys
 import re
 import datetime

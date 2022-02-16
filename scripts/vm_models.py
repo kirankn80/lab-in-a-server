@@ -7,10 +7,10 @@ par_dir = "VAGRANT_MACHINES_FOLDER_PATH"
 
 flavour = {
   'xlarge': {'memory': 65536, 'cpu': 8, 'hugepages': '64000'},
-  'large': {'memory': 32768, 'cpu': 16, 'hugepages': '32000'},
+  'large': {'memory': 32768, 'cpu': 8, 'hugepages': '32000'},
   'medium': {'memory': 32768, 'cpu': 4, 'hugepages': '32000'},
-  'small': {'memory': 8192, 'cpu': 2, 'hugepages': '16000'},
-  'tiny': {'memory': 8192, 'cpu': 2, 'hugepages': '16000'}
+  'small': {'memory': 16384, 'cpu': 4, 'hugepages': '16000'},
+  'tiny': {'memory': 16384, 'cpu': 2, 'hugepages': '16000'}
 }
 
 

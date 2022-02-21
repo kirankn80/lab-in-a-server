@@ -41,7 +41,9 @@ class Vagrant():
     def vagrant_up(cls, dirname):
         command = ["vagrant", "up"]
         cls.chdir(dirname)
-        cls.run_command(command)
+        op = cls.run_command(command)
+        f = open("vagrantup.log","w")
+        f.write("logs : " + op)
 
     @classmethod
     def vagrant_halt(cls, dirname):

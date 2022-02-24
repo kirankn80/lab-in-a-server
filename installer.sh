@@ -121,6 +121,13 @@ if [ ! -f "$MACHINE_DIR/.machines/vminfo.json" ]; then
   cp "$VAGRANT_VM/scripts/vminfo.json" "$MACHINE_DIR/.machines/vminfo.json"
 fi
 
+pushd $VAGRANT_VM
+export GIT_BRANCH="`git rev-parse --abbrev-ref HEAD`"
+export GIT_COMMIT="`git rev-parse $GIT_BRANCH`"
+popd
+
+echo "{ \"branch\": \"$GIT_BRANCH\", \"commit_id\" : \"$GIT_COMMIT\" }"  > $MACHINE_DIR/gitcommit
+
 sudo cp $VAGRANT_VM/scripts/vm_builder.py /usr/bin/vm_builder
 
 sudo cp $VAGRANT_VM/scripts/all_in_one.py $SITE_PACKAGES_PATH/lab/all_in_one.py
@@ -139,9 +146,15 @@ sudo cp -r $VAGRANT_VM/ansible /etc/lab
 sudo cp $VAGRANT_VM/create_lab.sh /usr/bin/create_lab
 
 sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' /usr/bin/vm_builder
+sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' $SITE_PACKAGES_PATH/lab/contents.py
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'/etc/lab'/ansible@' $SITE_PACKAGES_PATH/lab/contents.py
+sudo sed -i 's@LAB_IN_A_SERVER_INFO_FILE@'$MACHINE_DIR'/.machines/vminfo.json@' $SITE_PACKAGES_PATH/lab/contents.py
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'/etc/lab'/ansible@' $SITE_PACKAGES_PATH/lab/provisioners.py
+sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' $SITE_PACKAGES_PATH/lab/vagrant_wrappers.py
+sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' $SITE_PACKAGES_PATH/lab/provisioners.py
 sudo sed -i 's@VAGRANT_MACHINES_FOLDER_PATH@'$MACHINE_DIR'/.machines@' $SITE_PACKAGES_PATH/lab/vm_models.py
-sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$ANSIBLE_PATH'/ansible@' /usr/bin/vm_builder
-sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'$ANSIBLE_PATH'/ansible@' $SITE_PACKAGES_PATH/lab/vm_models.py
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'/etc/lab'/ansible@' /usr/bin/vm_builder
+sudo sed -i 's@LAB_IN_A_SERVER_ANSIBLE_SCRIPTS_PATH@'/etc/lab'/ansible@' $SITE_PACKAGES_PATH/lab/vm_models.py
 sudo sed -i 's@LAB_IN_A_SERVER_INFO_FILE@'$MACHINE_DIR'/.machines/vminfo.json@' /usr/bin/vm_builder
 sudo sed -i '3 s@LAB_IN_SERVER_PATH_INFO@'$VAGRANT_VM'@' /usr/bin/create_lab
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 MACHINE_DIR="$HOME"
+GIT_BRANCH="`git rev-parse --abbrev-ref HEAD`"
 
 
 # git remote update
@@ -17,11 +18,10 @@ if [ $LOCAL_MASTER != $ORIGIN_MASTER ]; then
     GIT_BRANCH="`cat $MACHINE_DIR/gitcommit | jq -r \".branch\"`"
     git clone -b $GIT_BRANCH https://github.com/kirankn80/lab-in-a-server.git
     pushd /tmp/lab-in-a-server
-    git checkout $GIT_BRANCH
     popd
     popd
 
-    echo "{ \"branch\": \"$GIT_BRANCH\", \"commit_id\" : $ORIGIN_MASTER }"  > $MACHINE_DIR/gitcommit
+    echo "{ \"branch\": \"$GIT_BRANCH\", \"commit_id\": $ORIGIN_MASTER }"  > $MACHINE_DIR/gitcommit
 
     LAB_IN_SERVER_PATH="/tmp/lab-in-a-server"
     LAB_IN_SERVER_PATH=cd "$LAB_IN_SERVER_PATH"

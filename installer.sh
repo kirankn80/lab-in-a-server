@@ -50,6 +50,8 @@ sudo apt-get update
 pip install jxmlease future==0.18.2
 pip install --ignore-installed junos-eznc
 
+##install jq
+sudo apt install jq
 
 ## vQFX Box Addition
 

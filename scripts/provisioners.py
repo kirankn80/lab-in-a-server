@@ -109,7 +109,7 @@ class AllInOneContrail(BasicProvisioner):
             'openstack_version': openstack_version,
             'registry': registry,
             'dpdk_compute': dpdk_compute,
-            'vagrant_root': os.path.join(self.machines_dir, host.get_name()),
+            'vagrant_root': os.path.join(self.machines_dir, host.get_topo_name()),
             'contrail_deployer_branch': contrail_deployer_branch,
         }
         self.p_list[:0] = [AnsibleProvisioner(

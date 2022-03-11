@@ -51,14 +51,18 @@ class ThreeNode(BasicTopology):
         if self.total_control > 1 :
             if self.is_management_internal:
                 return True
+            if 'kolla_external_vip_address' not in  self.input_params.keys():
+                print(Fore.RED + "Note:" + Fore.WHITE +
+                  "Kolla external_vip_address is present in the input file")
+                return False
+        else:
+            return True
+            
         if not isinstance(self.kolla_external_vip_address, list):
             print(Fore.RED + "Note:" + Fore.WHITE +
                   "IP address given should be in list")
             return False
-        if 'kolla_external_vip_address' not in  self.input_params.keys():
-            print(Fore.RED + "Note:" + Fore.WHITE +
-                  "Kolla external_vip_address is present in the input file")
-            return False
+       
         if 'kolla_external_vip_address' in self.input_params.keys(): 
             if not re.match(
                 r'^[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}$',

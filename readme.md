@@ -1,6 +1,6 @@
 # Lab-in-a-server
 
-This tool can be used to create pre-defined virtual topologies on a single server very easily. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant, virtualbox and python to create virtual topologies, install contrail and provision the cluster. This tool makes the life of developers and testers very easy by doing all these using a simple yaml file. It can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
+This tool can be used to create pre-defined virtual topologies (dev env, all-in-one, three-node, three node vqfx) on a single server very easily. And with the restructured code, one can bring up their own custom topologies by implementing the python script and integrating it with the code. The idea is to leverage high end servers and spin up Virtual machines and use them as Bare-metal servers. We can eliminate the need of physical servers, physical switches, physical routers and their painful connections and mis-configurations. The high end servers can be used effectively. As a thumb rule, we can spin about 15 to 20 virtual machines as bare metals in each of the high-end physical servers. VMs can be as fast as bare metals, so the difference between physical and virtual systems are blurred. The tool combines the power of vagrant, virtualbox and python to create virtual topologies, install contrail and provision the cluster. This tool makes the life of developers and testers very easy by doing all these using a simple yaml file. It can also assign Floating IPs to the bare metal instances so that they are accessible through the LAN.
 
 ## Installation
 
@@ -25,6 +25,8 @@ This tool can be used to create pre-defined virtual topologies on a single serve
 
 ## Upgrading the tool
 
+From version2 , The Autoupgrade feature has been implemented which will update and pull if there are any changes from the git repository the user have cloned.
+For the below versions 
 ### 1. Pull the changes
 Pull the latest code in the directory
 
@@ -41,7 +43,10 @@ sudo ./installer.sh
 ## Tool Usage
 
 ### 1. Creating Topologies
-Configuration file should be given as the input for creating vms. The configuration file will have attributes specific to topologies.
+Configuration file should be given as the input, hence the user needs to create a yml file for creating vms. The configuration file will have attributes specific to topologies.
+After creating a yml file say topo_name.yml
+
+The command to bring up topology is
 
 #### command
 
@@ -111,6 +116,13 @@ This command is to be used to shutdown the running topology.
 ```
 create_lab poweroff <topology_name>
 ```
+### 7. To find the host-machine
+
+To find the host-machine from the vm you can check 
+
+```
+vi /etc/host_machine_name
+```
 
 
 ## Topologies Supported Currently
@@ -151,6 +163,16 @@ gateway: '10.204.220.62'
 #### 6. internal_network: <True/False> (optional)
 When True, assigns private ip address accessible from host machine, as management ip. It is *FALSE* by default.
 
+#### 7.os_version : <os_version> (optional) 
+valid os_versions 
+
+        'centos-7.5'
+        'centos-7.7'
+        'ubuntu-20.04'  
+		
+os_version is centos 7.7 by default	
+
+if os_version is given as ubuntu then contrail provision won't work
 ### 1. Dev-env
 ![devenv setup](https://github.com/kirankn80/lab-in-a-server/blob/version1/images/devenv.png)
 
@@ -258,6 +280,48 @@ contrail_command: True
 ## Note:
 If the contrail_version is not specified during topology creation, the virtual machines are still up without contrail.
 
+
+## To check the logs
+
+If the user encounters any issue and wants to debug one can find the logs of vagrant up by using the below commands
+
+```
+create_lab list 
+```
+copy the path of the topology
+
+```
+cd <path>
+```
+```
+cat vagrantup.log
+```
+This will open the log file where the user can check for errors
+
+## Steps to raise a ticket for the issues related to lab in a server
+
+1. create a jira ticket with issue type as bug
+
+2. In the epic field link it to lab-in-a-server  bugs epic
+
+3. paste the error message or the issue clearly in the description 
+
+4. Attach the screenshots if any 
+
+5. click on create
+
+6. Any issues which are not related to lab-in-a-server like 
+if deployment fails, its not the tool's failure
+in that case, reach out to respective teams
+
+7. you can create a jira ticket here
+```
+https://contrail-jws.atlassian.net/browse/CEM-25946
+```
+## Steps to perform when provisioning fails
+```
+https://github.com/kirankn80/lab-in-a-server/wiki/Steps-to-perform-when-provisioning-fails
+```
 ### Accessing Private IP addresses on the host-machine
 #### FoxyProxy
 Creates a tunnel to host machine using port forwarding.   

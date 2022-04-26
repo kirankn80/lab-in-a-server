@@ -1,7 +1,7 @@
 template: 'devenv'
 name: dev
 internal_network: True
-branch: R1910
+branch: 2011.L2.3
 management_ip: 10.204.220.30
 netmask: 255.255.255.192
 gateway: 10.204.220.62

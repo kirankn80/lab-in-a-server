@@ -271,7 +271,7 @@ class UBUNTU(Server):
 
 
 class UBUNTU_20_04(UBUNTU):
-    box = "lab-in-a-server/ubuntu-focal64"
+    box = "kirankn/ubuntu-20.04"
 
     def __init__(self, name, flavour="medium",
                  is_management_internal=False, os_version="ubuntu-20.04"):
